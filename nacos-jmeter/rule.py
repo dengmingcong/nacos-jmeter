@@ -66,7 +66,7 @@ class Rule(object):
         """
         Extract and return configurations existed from one Nacos namespace.
 
-        1. Each element of the returned list is a tuple of (namespace_id, group, data_id).
+        1. Each element of the returned list is a tuple of (namespace, group, data_id).
         2. Parameter options adds functionalities like downloading configurations.
            Hierarchy of downloaded files would be dst_dir/namespace/group/dataId.
 
@@ -90,7 +90,7 @@ class Rule(object):
 
                 # if configuration exists, download it and save data id path to list
                 if response.status_code == 200:
-                    data_id_paths.append(tuple(payload.values()))
+                    data_id_paths.append((namespace, group_name, data_id))
 
                     # if the *options* dict contains key 'dst_dir', the existed configurations would be downloaded.
                     if "dst_dir" in options.keys():
@@ -109,9 +109,9 @@ class Rule(object):
 
     def apply_to_nacos(self, nacos: Nacos, **options) -> list:
         """
-        Extract and return configurations existed in Nacos.
+        Extract and return configurations existed in Nacos based on the rule.
 
-        1. Each element of the returned list is a tuple of (namespace_id, group, data_id).
+        1. Each element of the returned list is a tuple of (namespace, group, data_id).
         2. Parameter options adds functionalities like downloading configurations.
 
         :param nacos: instance of class Nacos
@@ -126,9 +126,33 @@ class Rule(object):
 
         return data_id_paths
 
+    def apply_to_snapshot(self, snapshot) -> list:
+        """
+        Extract and return configurations existed in local snapshot based on the rule.
+        Each element of the returned list is a tuple of (namespace_id, group, data_id).
+
+        :param snapshot: directory contains snapshot of Nacos
+        :return: list
+        """
+        data_id_path = []
+        assert Path(snapshot).exists(), f"Error. Directory {snapshot} does not exist."
+        for namespace in self.namespaces:
+            logger.info(f"Begin to check namespace: {namespace}")
+            for group in self.groups:
+                group_name = group["group"]
+                data_ids = group["data_ids"]
+                for data_id in data_ids:
+                    if Path(f"{snapshot}/{namespace}/{group_name}/{data_id}").exists():
+                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} exists")
+                        data_id_path.append((namespace, group_name, data_id))
+            logger.info(f"End to check namespace: {namespace}")
+
+        return data_id_path
+
 
 if __name__ == "__main__":
     nacos = Nacos("localhost", 8848)
-    rule = Rule("ci", ["core400s", "core300s"])
-    paths = rule.apply_to_nacos(nacos, dst_dir="../test")
+    rule = Rule("ci", ["core400s", "core300s"], True)
+    # paths = rule.apply_to_nacos(nacos, dst_dir="../test")
+    paths = rule.apply_to_snapshot("../test/")
     print(paths)
