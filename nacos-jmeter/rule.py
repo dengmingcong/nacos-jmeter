@@ -39,6 +39,7 @@ class Rule(object):
 
         # set namespaces
         self.namespaces = ["cross-env", env]
+        logger.info(f"namespaces of current rule: {self.namespaces}")
 
         # set groups
         self.groups = [
@@ -56,9 +57,10 @@ class Rule(object):
         if debug:
             debug_group = {
                 "group": "DEBUG",
-                "data_ides": devices
+                "data_ids": devices
             }
             self.groups.append(debug_group)
+        logger.info(f"groups of current rule: {self.groups}")
 
     def _extract_one_namespace(self, nacos: Nacos, namespace: str, **options) -> list:
         """
@@ -77,8 +79,7 @@ class Rule(object):
         namespace_id = nacos.namespaces[namespace]["id"]
         for group in self.groups:
             group_name = group["group"]
-            data_ids = group["data-ids"]
-            logger.info(f"{namespace}:{group_name}:data-ids - {data_ids}")
+            data_ids = group["data_ids"]
             for data_id in data_ids:
                 payload = {
                     "tenant": namespace_id,
@@ -94,16 +95,17 @@ class Rule(object):
                     # if the *options* dict contains key 'dst_dir', the existed configurations would be downloaded.
                     if "dst_dir" in options.keys():
                         dst_dir = options["dst_dir"]
-                        group_dir = f"{dst_dir}/${namespace}/{group_name}"
+                        assert Path(dst_dir).exists(), f"Error. Directory {dst_dir} does not exist."
+                        group_dir = f"{dst_dir}/{namespace}/{group_name}"
                         config_file = f"{group_dir}/{data_id}"
-                        Path(group_dir).mkdir(parents=False, exist_ok=True)
-                        logger.info(f"{namespace}:{group_name}:{data_id} - {config_file}")
+                        Path(group_dir).mkdir(parents=True, exist_ok=True)
+                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - path: {config_file}")
                         content = response.text
-                        logger.info(f"{namespace}:{group_name}:{data_id} - \n{content}")
+                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - content:\n{content}")
                         with open(config_file, "w") as f:
                             f.write(content)
 
-            return data_id_paths
+        return data_id_paths
 
     def apply_to_nacos(self, nacos: Nacos, **options) -> list:
         """
@@ -118,20 +120,15 @@ class Rule(object):
         """
         data_id_paths = []
         for namespace in self.namespaces:
-            logger.info(f"Begin to check namespace: {namespace}")
+            logger.info(f"Begin to extract namespace: {namespace}")
             data_id_paths += self._extract_one_namespace(nacos, namespace, **options)
-            logger.info(f"End to check namespace: {namespace}")
+            logger.info(f"End to extract namespace: {namespace}")
 
         return data_id_paths
 
 
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
-    rule = Rule("ci", ["core400s", "core300s"], True)
+    nacos = Nacos("localhost", 8848)
+    rule = Rule("ci", ["core400s", "core300s"])
+    paths = rule.apply_to_nacos(nacos, dst_dir="../test")
+    print(paths)
