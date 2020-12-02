@@ -1,0 +1,21 @@
+namespaces:
+  cross-env:
+    id: cross-env
+  ci:
+    id: env-01
+  testonline:
+    id: env-02
+  predeploy:
+    id: env-03
+
+devices:  &devices
+  - core400s.us
+  - core300s.us
+
+groups:
+  - group: SHARED
+    data-ids: [common]
+  - group: DEVICE
+    data-ids: *devices
+  - group: DEBUG
+    data-ids: *devices
