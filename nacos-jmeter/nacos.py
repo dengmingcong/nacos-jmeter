@@ -6,8 +6,8 @@ class Nacos(object):
 
     def __init__(self, host, port):
         """Init class."""
-        self.login_url = f"{host}:{port}/nacos/#/login"
-        self.get_config_url = f"{host}:{port}/nacos/v1/cs/configs"
+        self.login_url = f"http://{host}:{port}/nacos/#/login"
+        self.get_config_url = f"http://{host}:{port}/nacos/v1/cs/configs"
         self.namespaces = {
             "cross-env": {"id": "cross-env"},
             "ci": {"id": "env-01"},
