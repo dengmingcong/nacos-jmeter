@@ -9,7 +9,7 @@ from nacos import Nacos
 class Rule(object):
     """Class representing rules for downloading configurations from Nacos."""
 
-    def __init__(self, env, devices: list, debug=False):
+    def __init__(self, namespaces: list, devices: list, debug=False):
         """
         Init a rule for a JMeter test plan.
 
@@ -30,15 +30,17 @@ class Rule(object):
                 "data_ides": ["core400s", "core300s"]
             }]
 
-        :param env: can nly be one of "ci", "testonline", or "predeploy"
+        :param namespaces: a list, whose element can nly be one of "cross-env", "ci", "testonline", or "predeploy"
         :param devices: a list of devices
         :param debug: set True if used for debugging
         """
         # check parameters
-        assert env in ['ci', 'testonline', 'predeploy'], 'parameter "env" must be ci, testonline or predeploy'
+        for namespace in namespaces:
+            assert namespace in ['cross-env', 'ci', 'testonline', 'predeploy'], \
+                f"Unrecognized namespace {namespace} (supposed to be one of cross-env, ci, testonline or predeploy)"
 
         # set namespaces
-        self.namespaces = ["cross-env", env]
+        self.namespaces = namespaces
         logger.info(f"namespaces of current rule: {self.namespaces}")
 
         # set groups
@@ -152,7 +154,7 @@ class Rule(object):
 
 if __name__ == "__main__":
     nacos = Nacos("localhost", 8848)
-    rule = Rule("ci", ["core400s", "core300s"], True)
-    # paths = rule.apply_to_nacos(nacos, dst_dir="../test")
-    paths = rule.apply_to_snapshot("../test/")
+    rule = Rule(["cross-env", "ci"], ["core400s", "core300s"], True)
+    paths = rule.apply_to_nacos(nacos, dst_dir="../test")
+    # paths = rule.apply_to_snapshot("../test/")
     print(paths)
