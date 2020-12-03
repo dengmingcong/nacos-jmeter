@@ -30,7 +30,7 @@ class Rule(object):
                 "data_ides": ["core400s", "core300s"]
             }]
 
-        :param namespaces: a list, whose element can nly be one of "cross-env", "ci", "testonline", or "predeploy"
+        :param namespaces: a list, whose element can only be one of "cross-env", "ci", "testonline", or "predeploy"
         :param devices: a list of devices
         :param debug: set True if used for debugging
         """
@@ -64,12 +64,12 @@ class Rule(object):
             self.groups.append(debug_group)
         logger.info(f"groups of current rule: {self.groups}")
 
-    def _extract_one_namespace(self, nacos: Nacos, namespace: str, **options) -> list:
+    def _collect_one_namespace(self, nacos: Nacos, namespace: str, **options) -> list:
         """
-        Extract and return configurations existed from one Nacos namespace.
+        Collect and return configurations existed from one Nacos namespace.
 
         1. Each element of the returned list is a tuple of (namespace, group, data_id).
-        2. Parameter options adds functionalities like downloading configurations.
+        2. Parameter 'options' adds functionalities like downloading configurations.
            Hierarchy of downloaded files would be dst_dir/namespace/group/dataId.
 
         :param nacos: instance of class Nacos
@@ -111,7 +111,7 @@ class Rule(object):
 
     def apply_to_nacos(self, nacos: Nacos, **options) -> list:
         """
-        Extract and return configurations existed in Nacos based on the rule.
+        Collect and return configurations existed in Nacos based on the rule.
 
         1. Each element of the returned list is a tuple of (namespace, group, data_id).
         2. Parameter options adds functionalities like downloading configurations.
@@ -123,15 +123,15 @@ class Rule(object):
         data_id_paths = []
         for namespace in self.namespaces:
             logger.info(f"Begin to extract namespace: {namespace}")
-            data_id_paths += self._extract_one_namespace(nacos, namespace, **options)
+            data_id_paths += self._collect_one_namespace(nacos, namespace, **options)
             logger.info(f"End to extract namespace: {namespace}")
 
         return data_id_paths
 
     def apply_to_snapshot(self, snapshot) -> list:
         """
-        Extract and return configurations existed in local snapshot based on the rule.
-        Each element of the returned list is a tuple of (namespace_id, group, data_id).
+        Collect and return configurations existed in local snapshot based on the rule.
+        Each element of the returned list is a tuple of (namespace, group, data_id).
 
         :param snapshot: directory contains snapshot of Nacos
         :return: list
