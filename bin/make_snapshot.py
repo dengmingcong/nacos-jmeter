@@ -30,16 +30,18 @@ def make_snapshot(nacos: Nacos, dst_dir):
     rule.apply_to_nacos(nacos, dst_dir=dst_dir)
 
     # download configurations in namespace 'public'
-    jenkins_jmx_relationship_group_dir = f"{dst_dir}/public/{settings.JENKINS_JMX_RELATIONSHIP_GROUP}"
-    Path(jenkins_jmx_relationship_group_dir).mkdir(parents=True, exist_ok=True)
     payload_jenkins_jmx_conf = {
         "group": settings.JENKINS_JMX_RELATIONSHIP_GROUP,
         "dataId": settings.JENKINS_JMX_RELATIONSHIP_DATA_ID
     }
-    jenkins_jmx_conf_yaml = requests.get(nacos.get_config_url, params=payload_jenkins_jmx_conf).text
-    logger.info(f"jenkins jmx conf content: \n{jenkins_jmx_conf_yaml}")
-    with open(f"{jenkins_jmx_relationship_group_dir}/{settings.JENKINS_JMX_RELATIONSHIP_DATA_ID}", "w") as f:
-        f.write(jenkins_jmx_conf_yaml)
+    response = requests.get(nacos.get_config_url, params=payload_jenkins_jmx_conf)
+    if response.status_code == 200:
+        jenkins_jmx_conf_yaml = response.text
+        jenkins_jmx_relationship_group_dir = f"{dst_dir}/public/{settings.JENKINS_JMX_RELATIONSHIP_GROUP}"
+        Path(jenkins_jmx_relationship_group_dir).mkdir(parents=True, exist_ok=True)
+        logger.info(f"jenkins jmx conf content: \n{jenkins_jmx_conf_yaml}")
+        with open(f"{jenkins_jmx_relationship_group_dir}/{settings.JENKINS_JMX_RELATIONSHIP_DATA_ID}", "w") as f:
+            f.write(jenkins_jmx_conf_yaml)
 
 
 if __name__ == "__main__":
