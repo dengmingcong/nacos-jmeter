@@ -49,5 +49,6 @@ def make_snapshot(nacos: Nacos, dst_dir):
 
 
 if __name__ == "__main__":
+    snapshot_dir = sys.argv[1]
     nacos_new = Nacos(settings.HOST, settings.PORT)
-    make_snapshot(nacos_new, "../test")
+    make_snapshot(nacos_new, snapshot_dir)
