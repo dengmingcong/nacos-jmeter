@@ -1,5 +1,9 @@
-from loguru import logger
+import sys
+sys.path.append("../nacos-jmeter")
+
 from pathlib import Path
+
+from loguru import logger
 import requests
 import yaml
 
