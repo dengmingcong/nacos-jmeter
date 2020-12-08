@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<project name="ant-jmeter" default="all">
+    <description>
+        Sample build file for use with ant-jmeter.jar
+        See http://www.programmerplanet.org/pages/projects/jmeter-ant-task.php
+    </description>
+    
+    <property name="jenkins.job.workspace" value=""/>
+    <property name="jmeter.home" value=""/>
+    <property name="report.title" value="Load Test Results"/>
+    
+    <!-- Name of test (without .jmx) -->
+    <property name="test" value=""/>
+    
+    <taskdef
+        name="jmeter"
+        classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"/>
+    
+    <target name="all" depends="run,report"/>
+
+    <target name="run">
+        <delete file="${jenkins.job.workspace}/${test}.jtl"/>
+        <jmeter
+            jmeterhome="${jmeter.home}"
+            testplan =""
+            resultlog="${jenkins.job.workspace}/${test}.jtl">
+            <!-- Force suitable defaults -->
+            <property name="jmeter.save.saveservice.output_format" value="xml"/>
+            <property name="jmeter.save.saveservice.assertion_results" value="all"/>
+            <property name="jmeter.save.saveservice.bytes" value="true"/>
+        </jmeter>
+    </target>
+
+    <property name="lib.dir" value="${jmeter.home}/lib"/>
+
+    <!-- Use xalan copy from JMeter lib directory to ensure consistent processing with Java 1.4+ -->
+    <path id="xslt.classpath">
+		<fileset dir="${lib.dir}" includes="saxon*.jar"/>
+        <fileset dir="${lib.dir}" includes="xalan*.jar"/>
+        <fileset dir="${lib.dir}" includes="serializer*.jar"/>
+    </path>
+
+    <target name="report" depends="xslt-report,copy-images">
+        <echo>Report generated at ${report.datestamp}</echo>
+    </target>
+
+    <target name="xslt-report">
+        <tstamp><format property="report.datestamp" pattern="yyyy/MM/dd HH:mm"/></tstamp>
+        <xslt
+            classpathref="xslt.classpath"
+            force="true"
+            in="${jenkins.job.workspace}/${test}.jtl"
+            out="${jenkins.job.workspace}/reports/${test}_summary.html"
+            style="${jmeter.home}/extras/jmeter-results-detail-report_21.xsl">
+            <param name="titleReport" expression="${report.title}"/>
+            <param name="dateReport" expression="${report.datestamp}"/>
+        </xslt>
+        <xslt
+            classpathref="xslt.classpath"
+            force="true"
+            in="${jenkins.job.workspace}/${test}.jtl"
+            out="${jenkins.job.workspace}/reports/${test}_detail.html"
+            style="${jmeter.home}/extras/jmeter.results.foldable.xsl">
+            <param name="titleReport" expression="${report.title}"/>
+            <param name="dateReport" expression="${report.datestamp}"/>
+        </xslt>
+    </target>
+
+    <!-- Copy report images if needed -->
+    <target name="copy-images">
+        <copy file="${jmeter.home}/extras/expand.png" tofile="${jenkins.job.workspace}/reports/expand.png"/>
+        <copy file="${jmeter.home}/extras/collapse.png" tofile="${jenkins.job.workspace}/reports/collapse.png"/>
+    </target>
+
+</project>
