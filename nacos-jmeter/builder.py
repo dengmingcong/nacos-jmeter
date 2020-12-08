@@ -16,7 +16,8 @@ class Builder(object):
     Class representing once Jenkins build with ant-jmeter.
 
     Note:
-        The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
+        1. The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
+        2. Test plan written in nacos.jmeter.test-plan must not start with "/".
     """
     def __init__(
             self,
@@ -47,6 +48,7 @@ class Builder(object):
         self.debug = self._debug()
         self.job_name_without_modifier = self._remove_modifiers()
         self.test_plan = self._get_jmeter_test_plan()
+        self.test_plan_abs_path = self._test_plan_abs()
         # additional properties, multi-properties should be separated by ','
         self.additional_properties = self.collect_property_files()
 
@@ -82,6 +84,7 @@ class Builder(object):
     def _get_jmeter_test_plan(self):
         """
         Get the JMeter test plan from nacos.jmeter.test-plan.
+        Only relative path (relative to ) are accepted.
         """
         jenkins_and_jmeter_conf = os.path.join(
             self.nacos_snapshot,
@@ -94,7 +97,17 @@ class Builder(object):
             yaml_to_dict = yaml.safe_load(f)
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
-        return yaml_to_dict[self.job_name_without_modifier]
+        test_plan = yaml_to_dict[self.job_name_without_modifier]
+        assert not test_plan.startswith("/"), "only relative path was accepted"
+        return test_plan
+
+    def _test_plan_abs(self):
+        """
+        Get the absolute path of test plan.
+        """
+        test_plan_full_path = os.path.join(self.test_plan_base_dir, self.test_plan)
+        assert os.path.exists(test_plan_full_path), f"file or directory {test_plan_full_path} does not exist"
+        return test_plan_full_path
 
     def collect_property_files(self) -> list:
         """
@@ -168,13 +181,7 @@ class Builder(object):
         jenkins_job_workspace_element.set("value", self.jenkins_job_workspace)
         jmeter_home_element.set("value", self.jmeter_home)
 
-        # if the path of test plan is a relative path, change it to absolute path
-        if not self.test_plan.startswith("/"):
-            test_plan_full_path = os.path.join(self.test_plan_base_dir, self.test_plan)
-        else:
-            test_plan_full_path = self.test_plan
-        assert os.path.exists(test_plan_full_path), f"file or directory {test_plan_full_path} does not exist"
-        jmeter_element.set("testplan", test_plan_full_path)
+        jmeter_element.set("testplan", self.test_plan_abs_path)
         test_name_element.set("value", self.test_name)
 
         for item in self.additional_properties:
