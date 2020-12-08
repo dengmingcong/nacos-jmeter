@@ -178,7 +178,7 @@ class Builder(object):
         test_name_element.set("value", self.test_name)
 
         for item in self.additional_properties:
-            #assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
+            assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
             assert os.path.exists(item.strip()), "file or directory {} does not exist.".format(item)
             ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
 
