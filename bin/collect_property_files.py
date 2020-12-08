@@ -77,4 +77,4 @@ def collect_property_files(jenkins_job_name: str, nacos_snapshot: str) -> list:
 
 
 if __name__ == "__main__":
-    print(collect_properties("debug-fullTest-Core400SUSR-Cloud-API-ci", "../test"))
+    print(collect_property_files("debug-fullTest-Core400SUSR-Cloud-API-ci", "../test"))
