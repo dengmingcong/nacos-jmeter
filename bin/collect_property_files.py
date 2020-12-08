@@ -7,15 +7,15 @@ sys.path.append("../nacos-jmeter")
 from loguru import logger
 import yaml
 
-import rule
+from rule import Rule
 import settings
 
 
-def collect_properties(jenkins_job_name: str, nacos_snapshot: str) -> list:
+def collect_property_files(jenkins_job_name: str, nacos_snapshot: str) -> list:
     """
     Collect property files for a Jenkins job.
 
-    :param jenkins_job_name: name of Jenkins job
+    :param jenkins_job_name: name of Jenkins job, for example, debug-fullTest-Core400SUSR-Cloud-API-ci
     :param nacos_snapshot: directory contains snapshot of Nacos
     :return: list of property files
     """
@@ -30,25 +30,51 @@ def collect_properties(jenkins_job_name: str, nacos_snapshot: str) -> list:
         stage = "predeploy"
     else:
         raise ValueError(
-            f"The job name {jenkins_job_name} must end with either one of 'ci', 'testonline' and 'predeploy'"
+            f"Your job name {jenkins_job_name} are supposed to end with either one of "
+            f"'ci', 'testonline' and 'predeploy' (case insensitive)"
         )
     logger.info(f"Stage gotten from job name: {stage}")
 
     # determine if used for debugging
+    debug = False
     if jenkins_job_name.startswith("debug"):
         debug = True
 
     # strip job name's prefix and suffix
     job_name_without_modifier = re.sub("(?i)(regression|debug)[-|_]", "", jenkins_job_name)
-    job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy)]", "", job_name_without_modifier)
-    logger.info(f"Job name without modifier: {job_name_without_modifier}")
+    job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy)", "", job_name_without_modifier)
+    logger.info(f"Job name without modifiers: {job_name_without_modifier}")
 
     # get devices used in jmx
-    nacos_jmeter_test_plan_conf = os.path.join(
+    jenkins_and_jmeter_conf = os.path.join(
         nacos_snapshot,
         "public",
         settings.JENKINS_JMX_RELATIONSHIP_GROUP,
         settings.JENKINS_JMX_RELATIONSHIP_DATA_ID
     )
-    assert Path(nacos_jmeter_test_plan_conf).exists(), f"File {nacos_jmeter_test_plan_conf} does not exist"
-    devices = yaml.safe_load(nacos_jmeter_test_plan_conf)
+    assert Path(jenkins_and_jmeter_conf).exists(), f"File {jenkins_and_jmeter_conf} does not exist"
+    with open(jenkins_and_jmeter_conf, "r") as f:
+        yaml_to_dict = yaml.safe_load(f)
+    assert job_name_without_modifier in yaml_to_dict.keys(), \
+        f"The key named with Jenkins job '{job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
+    test_plan = yaml_to_dict[job_name_without_modifier]
+    assert test_plan in yaml_to_dict.keys(), \
+        f"The key named with JMeter test plan '{test_plan}' not defined in file {jenkins_and_jmeter_conf}"
+    devices = yaml_to_dict[test_plan]
+
+    # initiate a rule instance
+    r = Rule(['cross-env', stage], devices, debug)
+
+    # apply rule to snapshot
+    config_path_list = r.apply_to_snapshot(nacos_snapshot)
+
+    # join and generate path
+    paths = []
+    for config_path in config_path_list:
+        paths.append(os.path.join(nacos_snapshot, *config_path))
+
+    return paths
+
+
+if __name__ == "__main__":
+    print(collect_properties("debug-fullTest-Core400SUSR-Cloud-API-ci", "../test"))
