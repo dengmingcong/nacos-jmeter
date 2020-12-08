@@ -12,7 +12,12 @@ import settings
 
 
 class Builder(object):
-    """Class representing once Jenkins build with ant-jmeter."""
+    """
+    Class representing once Jenkins build with ant-jmeter.
+
+    Note:
+        The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
+    """
     def __init__(
             self,
             jenkins_job_name,
