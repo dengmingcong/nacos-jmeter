@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from loguru import logger
 import requests
@@ -62,7 +63,7 @@ class Nacos(object):
 
 
 class Rule(object):
-    """Class representing rules for downloading configurations from Nacos."""
+    """Class representing rules describing how to download configurations from Nacos for JMeter test plan."""
 
     def __init__(self, namespaces: list, devices: list, debug=False):
         """
@@ -186,12 +187,12 @@ class Rule(object):
     def apply_to_snapshot(self, snapshot) -> list:
         """
         Collect and return configurations existed in local snapshot based on the rule.
-        Each element of the returned list is a tuple of (namespace, group, data_id).
+        Each element of the returned list is an absolute path as "/path/to/snapshot/namespace/group/data_id"
 
         :param snapshot: directory contains snapshot of Nacos
         :return: list
         """
-        data_id_path = []
+        data_id_tuples = []
         assert Path(snapshot).exists(), f"Error. Directory {snapshot} does not exist."
         for namespace in self.namespaces:
             logger.info(f"Begin to check namespace: {namespace}")
@@ -201,12 +202,20 @@ class Rule(object):
                 for data_id in data_ids:
                     if Path(f"{snapshot}/{namespace}/{group_name}/{data_id}").exists():
                         logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} exists")
-                        data_id_path.append((namespace, group_name, data_id))
+                        data_id_tuples.append((namespace, group_name, data_id))
             logger.info(f"End to check namespace: {namespace}")
 
-        return data_id_path
+        nacos_snapshot_abs = os.path.abspath(snapshot)
+        data_id_abs_paths = []
+        for config_path in data_id_tuples:
+            data_id_abs_paths.append(os.path.join(nacos_snapshot_abs, *config_path))
+
+        return data_id_abs_paths
+
 
 
 if __name__ == "__main__":
     n = Nacos("34.234.176.173", 8848)
     n.make_snapshot("../test")
+    r = Rule(["cross-env", "ci"], ["WiFiBTOnboardingNotify_AirPurifier_LAP-C4004S-WUSR_US"], True)
+    print(r.apply_to_snapshot("../test"))
