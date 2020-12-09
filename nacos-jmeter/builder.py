@@ -141,10 +141,11 @@ class Builder(object):
 
         return paths
 
-    def concatenate_property_files(self, out: str):
+    def concatenate_property_files(self, out: str, to_stdout=False):
         """
         Combine content of several files, and save it to another file.
         :param out: file to save concatenated text
+        :param to_stdout: print to stdout if set True
         """
         with open(out, "w") as out_file:
             # print("# all properties collected", file=out_file)
@@ -160,6 +161,10 @@ class Builder(object):
                 with open(file, 'r') as in_file:
                     # shutil.copyfileobj(in_file, out_file)
                     out_file.write(in_file.read())
+
+        if to_stdout:
+            with open(out, 'r') as out_file:
+                print(out_file.read())
 
     def generate_new_build_xml(self, output_build_xml):
         """
