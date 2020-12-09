@@ -38,7 +38,3 @@ class TestPlan(object):
             property_parent.text = "true"
 
         tree.write(out_file, encoding="utf-8")
-
-
-if __name__ == "__main__":
-    pass
