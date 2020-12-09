@@ -1,13 +1,12 @@
 from pathlib import Path
 import os
 import re
-import textwrap
 import xml.etree.ElementTree as ET
 
 from loguru import logger
 import yaml
 
-from rule import Rule
+from nacos import Rule
 import settings
 
 
@@ -135,31 +134,6 @@ class Builder(object):
 
         return paths
 
-    def concatenate_property_files(self, out: str, to_stdout=False):
-        """
-        Combine content of several files, and save it to another file.
-        :param out: file to save concatenated text
-        :param to_stdout: print to stdout if set True
-        """
-        with open(out, "w") as out_file:
-            # print("# all properties collected", file=out_file)
-            out_file.write("# all properties collected from Nacos snapshot")
-            for file in self.additional_properties:
-                # out_file.write(f"# file: {file}\n")
-                header = textwrap.dedent(f"""\n
-                #=============== properties collected from ===============
-                # {file}
-                #=========================================================
-                """)
-                print(header, file=out_file)
-                with open(file, 'r') as in_file:
-                    # shutil.copyfileobj(in_file, out_file)
-                    out_file.write(in_file.read())
-
-        if to_stdout:
-            with open(out, 'r') as out_file:
-                print(out_file.read())
-
     def generate_new_build_xml(self, output_build_xml):
         """
         Generate a new build.xml.
@@ -189,9 +163,3 @@ class Builder(object):
             ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
 
         tree.write(output_build_xml)
-
-
-if __name__ == "__main__":
-    b = Builder("debug-fullTest-Core400SUSR-Cloud-API-ci", "../snapshot", "d:\\Program Files (x86)\\jmeter4.0", "test_name_core400susr", "d:\\03 mp products\\01 cg Git代码\\cloud-api-test")
-    b.generate_new_build_xml("../test/out.xml")
-    b.concatenate_property_files("../test/all.properties")
