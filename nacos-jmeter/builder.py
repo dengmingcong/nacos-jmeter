@@ -131,13 +131,7 @@ class Builder(object):
         r = Rule(['cross-env', self.stage], devices, self.debug)
 
         # apply rule to snapshot
-        config_path_list = r.apply_to_snapshot(self.nacos_snapshot)
-
-        # join and generate path
-        paths = []
-        nacos_snapshot_abs = os.path.abspath(self.nacos_snapshot)
-        for config_path in config_path_list:
-            paths.append(os.path.join(nacos_snapshot_abs, *config_path))
+        paths = r.apply_to_snapshot(self.nacos_snapshot)
 
         return paths
 
