@@ -17,5 +17,10 @@ additional_properties = build.collect_property_files()
 common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", True)
 test_plan_abs_path = build.test_plan_abs(test_plan_base_dir)
 test_plan = TestPlan(test_plan_abs_path)
-test_plan.change_controller_type(test_plan_abs_path)
+
+if build.debug:
+    test_plan.enable_stop_thread()
+
+test_plan.change_controller_type()
+test_plan.save(test_plan_abs_path)
 build.generate_new_build_xml(jenkins_job_workspace, jmeter_home, test_name, test_plan_base_dir, new_build_xml)
