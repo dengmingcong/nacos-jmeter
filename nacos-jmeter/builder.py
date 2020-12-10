@@ -18,36 +18,20 @@ class Builder(object):
         1. The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
         2. Test plan written in nacos.jmeter.test-plan must not start with "/".
     """
-    def __init__(
-            self,
-            jenkins_job_name,
-            jenkins_job_workspace,
-            jmeter_home,
-            test_name,
-            test_plan_base_dir
-    ):
+    def __init__(self, jenkins_job_name):
         """
         Init a new Jenkins build.
 
         :param jenkins_job_name: name of Jenkins job, for example, debug-fullTest-Core400SUSR-Cloud-API-ci
-        :param jenkins_job_workspace: workspace of job where test results were saved
-        :param jmeter_home: JMeter home
-        :param test_name: name for given test
-        :param test_plan_base_dir: directory that stores all test plans, in particular, the local git repository
         """
         self.sample_build_xml = "../resources/build_template.xml"
         self.nacos_snapshot = "../snapshot"
         self.jenkins_job_name = jenkins_job_name
-        self.jenkins_job_workspace = jenkins_job_workspace
-        self.jmeter_home = jmeter_home
-        self.test_name = test_name
-        self.test_plan_base_dir = test_plan_base_dir
 
         self.stage = self._get_test_stage_from_job_name()
         self.debug = self._debug()
         self.job_name_without_modifier = self._remove_modifiers()
         self.test_plan = self._get_jmeter_test_plan()
-        self.test_plan_abs_path = self._test_plan_abs()
         # additional properties, multi-properties should be separated by ','
         self.additional_properties = self.collect_property_files()
 
@@ -100,11 +84,13 @@ class Builder(object):
         assert not test_plan.startswith("/"), "only relative path was accepted"
         return test_plan
 
-    def _test_plan_abs(self):
+    def _test_plan_abs(self, test_plan_base_dir):
         """
         Get the absolute path of test plan.
+
+        :param test_plan_base_dir: directory that stores all test plans, in particular, the local git repository
         """
-        test_plan_full_path = os.path.join(self.test_plan_base_dir, self.test_plan)
+        test_plan_full_path = os.path.join(test_plan_base_dir, self.test_plan)
         assert os.path.exists(test_plan_full_path), f"file or directory {test_plan_full_path} does not exist"
         return test_plan_full_path
 
@@ -134,16 +120,26 @@ class Builder(object):
 
         return paths
 
-    def generate_new_build_xml(self, output_build_xml):
+    def generate_new_build_xml(
+            self,
+            jenkins_job_workspace,
+            jmeter_home,
+            test_name,
+            test_plan_base_dir,
+            output_build_xml):
         """
         Generate a new build.xml.
 
+        :param jenkins_job_workspace: workspace of job where test results were saved
+        :param jmeter_home: JMeter home
+        :param test_name: name for given test
+        :param test_plan_base_dir: directory that stores all test plans, in particular, the local git repository
         :param output_build_xml: new build.xml generated based on template
         """
         # check if files / directories exist.
         assert os.path.exists(self.sample_build_xml), "file or directory {} does not exist".format(self.sample_build_xml)
-        assert os.path.exists(self.jenkins_job_workspace), "file or directory {} does not exist".format(self.jenkins_job_workspace)
-        assert os.path.exists(self.jmeter_home), "file or directory {} does not exist".format(self.jmeter_home)
+        assert os.path.exists(jenkins_job_workspace), "file or directory {} does not exist".format(jenkins_job_workspace)
+        assert os.path.exists(jmeter_home), "file or directory {} does not exist".format(jmeter_home)
 
         tree = ET.parse(self.sample_build_xml)
         jenkins_job_workspace_element = tree.find("property[@name='jenkins.job.workspace']")
@@ -151,14 +147,16 @@ class Builder(object):
         test_name_element = tree.find("property[@name='test']")
         jmeter_element = tree.find(".//jmeter")
 
-        jenkins_job_workspace_element.set("value", self.jenkins_job_workspace)
-        jmeter_home_element.set("value", self.jmeter_home)
+        jenkins_job_workspace_element.set("value", jenkins_job_workspace)
+        jmeter_home_element.set("value", jmeter_home)
 
-        jmeter_element.set("testplan", self.test_plan_abs_path)
-        test_name_element.set("value", self.test_name)
+        test_plan_abs_path = self._test_plan_abs(test_plan_base_dir)
+        jmeter_element.set("testplan", test_plan_abs_path)
+        test_name_element.set("value", test_name)
 
         for item in self.additional_properties:
-            assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
+            # TODO: check based on OS type
+            # assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
             assert os.path.exists(item.strip()), "file or directory {} does not exist.".format(item)
             ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
 
