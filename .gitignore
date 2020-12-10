@@ -149,4 +149,5 @@ cython_debug/
 
 # project specific
 test/
+snapshot/
 
