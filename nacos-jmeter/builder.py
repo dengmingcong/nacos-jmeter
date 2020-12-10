@@ -84,7 +84,7 @@ class Builder(object):
         assert not test_plan.startswith("/"), "only relative path was accepted"
         return test_plan
 
-    def _test_plan_abs(self, test_plan_base_dir):
+    def test_plan_abs(self, test_plan_base_dir):
         """
         Get the absolute path of test plan.
 
@@ -150,7 +150,7 @@ class Builder(object):
         jenkins_job_workspace_element.set("value", jenkins_job_workspace)
         jmeter_home_element.set("value", jmeter_home)
 
-        test_plan_abs_path = self._test_plan_abs(test_plan_base_dir)
+        test_plan_abs_path = self.test_plan_abs(test_plan_base_dir)
         jmeter_element.set("testplan", test_plan_abs_path)
         test_name_element.set("value", test_name)
 
