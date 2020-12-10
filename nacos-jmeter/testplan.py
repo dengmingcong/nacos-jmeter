@@ -10,15 +10,11 @@ class TestPlan(object):
         :param test_plan: full path of a JMeter jmx
         """
         self.test_plan = test_plan
+        self.tree = ET.parse(self.test_plan)
 
-    def change_controller_type(self, out_file):
-        """
-        Convert simple controller to transaction controller
-
-        :param out_file: file to save as
-        """
-        tree = ET.parse(self.test_plan)
-        simple_controllers = tree.findall(".//GenericController")
+    def change_controller_type(self):
+        """Convert simple controller to transaction controller."""
+        simple_controllers = self.tree.findall(".//GenericController")
         for simple_controller in simple_controllers:
             # change tag
             simple_controller.tag = "TransactionController"
@@ -32,9 +28,21 @@ class TestPlan(object):
             property_parent.text = "true"
 
         # set all transaction controllers generating parent sample.
-        transaction_controllers = tree.findall(".//TransactionController")
+        transaction_controllers = self.tree.findall(".//TransactionController")
         for transaction_controller in transaction_controllers:
             property_parent = transaction_controller.find("boolProp[@name='TransactionController.parent']")
             property_parent.text = "true"
 
-        tree.write(out_file, encoding="utf-8")
+    def enable_stop_thread(self):
+        """Set on_sample_error to stopthread."""
+        thread_groups = self.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            property_on_sampler_error = thread_group.find("stringProp[@name='ThreadGroup.on_sample_error']")
+            property_on_sampler_error.text = "stopthread"
+
+    def save(self, out_file):
+        """
+        Save tree to file.
+        :param out_file: file to save as
+        """
+        self.tree.write(out_file, encoding="utf-8")
