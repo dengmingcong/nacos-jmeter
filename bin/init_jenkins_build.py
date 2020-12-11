@@ -19,7 +19,7 @@ test_plan_abs_path = build.test_plan_abs(test_plan_base_dir)
 test_plan = TestPlan(test_plan_abs_path)
 
 if build.debug:
-    test_plan.enable_stop_thread()
+    test_plan.set_on_sample_error("continue")
 
 test_plan.change_controller_type()
 test_plan.save(test_plan_abs_path)

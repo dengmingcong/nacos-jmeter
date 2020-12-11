@@ -33,12 +33,14 @@ class TestPlan(object):
             property_parent = transaction_controller.find("boolProp[@name='TransactionController.parent']")
             property_parent.text = "true"
 
-    def enable_stop_thread(self):
-        """Set on_sample_error to stopthread."""
+    def set_on_sample_error(self, value):
+        """Set on_sample_error."""
+        if value not in ["continue", "stopthread"]:
+            raise ValueError("can only be set to 'continue' or 'stopthread'")
         thread_groups = self.tree.findall(".//ThreadGroup")
         for thread_group in thread_groups:
             property_on_sampler_error = thread_group.find("stringProp[@name='ThreadGroup.on_sample_error']")
-            property_on_sampler_error.text = "stopthread"
+            property_on_sampler_error.text = value
 
     def save(self, out_file):
         """
