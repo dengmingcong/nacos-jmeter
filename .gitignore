@@ -148,6 +148,5 @@ dmypy.json
 cython_debug/
 
 # project specific
-test/
 snapshot/
 
