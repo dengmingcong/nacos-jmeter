@@ -31,9 +31,7 @@ class Builder(object):
         self.stage = self._get_test_stage_from_job_name()
         self.debug = self._debug()
         self.job_name_without_modifier = self._remove_modifiers()
-        self.test_plan = self._get_jmeter_test_plan()
-        # additional properties, multi-properties should be separated by ','
-        self.additional_properties = self.collect_property_files()
+        self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
 
     def _get_test_stage_from_job_name(self):
         """Get test stage from the jenkins job name."""
@@ -64,10 +62,11 @@ class Builder(object):
         logger.info(f"Job name without modifiers: {job_name_without_modifier}")
         return job_name_without_modifier
 
-    def _get_jmeter_test_plan(self):
+    def _get_jmeter_relative_path_test_plans(self) -> list:
         """
-        Get the JMeter test plan from nacos.jmeter.test-plan.
+        Get the JMeter test plans from nacos.jmeter.test-plan.
         Only relative path (relative to ) are accepted.
+        :return: a list of test plans
         """
         jenkins_and_jmeter_conf = os.path.join(
             self.nacos_snapshot,
@@ -80,23 +79,33 @@ class Builder(object):
             yaml_to_dict = yaml.safe_load(f)
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
-        test_plan = yaml_to_dict[self.job_name_without_modifier]
-        assert not test_plan.startswith("/"), "only relative path was accepted"
-        return test_plan
+        test_plans = yaml_to_dict[self.job_name_without_modifier]
+        assert isinstance(test_plans, str) or isinstance(test_plans, list), "test plan can only be string or list."
 
-    def test_plan_abs(self, test_plan_base_dir):
-        """
-        Get the absolute path of test plan.
+        if isinstance(test_plans, str):
+            test_plans = [test_plans]
 
-        :param test_plan_base_dir: directory that stores all test plans, in particular, the local git repository
-        """
-        test_plan_full_path = os.path.join(test_plan_base_dir, self.test_plan)
-        assert os.path.exists(test_plan_full_path), f"file or directory {test_plan_full_path} does not exist"
-        return test_plan_full_path
+        for test_plan in test_plans:
+            assert not test_plan.startswith("/"), f"only relative path was accepted, but {test_plan} starts with '/'"
 
-    def collect_property_files(self) -> list:
+        return test_plans
+
+    @staticmethod
+    def abs_path_test_plan(base_dir, relative_path_test_plan):
         """
-        Collect property files (absolute path) for a Jenkins job.
+        Get the absolute path of test plans.
+
+        :param base_dir: directory that stores all test plans, in particular, the local git repository
+        :param relative_path_test_plan: test plan relative to base directory
+        """
+        abs_path_test_plan = os.path.join(base_dir, relative_path_test_plan)
+        assert os.path.exists(abs_path_test_plan), f"file or directory {abs_path_test_plan} does not exist"
+        return abs_path_test_plan
+
+    def collect_property_files(self, relative_path_test_plan) -> list:
+        """
+        Collect property files (absolute path) for a JMeter test plan.
+        :param relative_path_test_plan: test plan relative to base directory
         :return: list of property files
         """
         jenkins_and_jmeter_conf = os.path.join(
@@ -108,9 +117,9 @@ class Builder(object):
         assert Path(jenkins_and_jmeter_conf).exists(), f"File {jenkins_and_jmeter_conf} does not exist"
         with open(jenkins_and_jmeter_conf, "r") as f:
             yaml_to_dict = yaml.safe_load(f)
-        assert self.test_plan in yaml_to_dict.keys(), \
-            f"The key named with JMeter test plan '{self.test_plan}' not defined in file {jenkins_and_jmeter_conf}"
-        devices = yaml_to_dict[self.test_plan]
+        assert relative_path_test_plan in yaml_to_dict.keys(), \
+            f"The key named with JMeter test plan '{relative_path_test_plan}' not defined in file {jenkins_and_jmeter_conf}"
+        devices = yaml_to_dict[relative_path_test_plan]
 
         # initiate a rule instance
         r = Rule(['cross-env', self.stage], devices, self.debug)
@@ -145,19 +154,42 @@ class Builder(object):
         jenkins_job_workspace_element = tree.find("property[@name='jenkins.job.workspace']")
         jmeter_home_element = tree.find("property[@name='jmeter.home']")
         test_name_element = tree.find("property[@name='test']")
-        jmeter_element = tree.find(".//jmeter")
+        target_run_element = tree.find("target[@name='run']")
+        target_xslt_report_element = tree.find("target[@name='xslt-report']")
 
         jenkins_job_workspace_element.set("value", jenkins_job_workspace)
         jmeter_home_element.set("value", jmeter_home)
-
-        test_plan_abs_path = self.test_plan_abs(test_plan_base_dir)
-        jmeter_element.set("testplan", test_plan_abs_path)
         test_name_element.set("value", test_name)
 
-        for item in self.additional_properties:
-            # TODO: check based on OS type
-            # assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
-            assert os.path.exists(item.strip()), "file or directory {} does not exist.".format(item)
-            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
+        for test_plan in self.relative_path_test_plans:
+            jmx_file_name = os.path.splitext(os.path.basename(test_plan))[0]
+            result_jtl = f"{jenkins_job_workspace}/{jmx_file_name}.jtl"
+            result_html = f"{jenkins_job_workspace}/reports/{jmx_file_name}.html"
+            abs_path_test_plan = self.abs_path_test_plan(test_plan_base_dir, test_plan)
+            # additional properties, multi-properties should be separated by ','
+            additional_properties = self.collect_property_files(test_plan)
+
+            ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
+            jmeter_element = ET.Element("jmeter", attrib={
+                "jmeterhome": jmeter_home,
+                "testplan": abs_path_test_plan,
+                "resultlog": result_jtl
+            })
+
+            for item in additional_properties:
+                # TODO: check based on OS type
+                # assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
+                assert os.path.exists(item.strip()), "file or directory {} does not exist.".format(item)
+                ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
+            target_run_element.append(jmeter_element)
+
+            xslt_element = ET.Element("xslt", {
+                "classpathref": "xslt.classpath",
+                "force": "true",
+                "in": result_jtl,
+                "out": result_html,
+                "style": f"{jmeter_home}/extras/jmeter.results.foldable.xsl"
+            })
+            target_xslt_report_element.append(xslt_element)
 
         tree.write(output_build_xml)
