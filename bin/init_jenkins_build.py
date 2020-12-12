@@ -13,14 +13,17 @@ test_plan_base_dir = sys.argv[5]
 new_build_xml = sys.argv[6]
 
 build = Builder(jenkins_job_name)
-additional_properties = build.collect_property_files()
-common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", True)
-test_plan_abs_path = build.test_plan_abs(test_plan_base_dir)
-test_plan = TestPlan(test_plan_abs_path)
+for test_plan in build.relative_path_test_plans:
+    print("Collect properties for test plan: " + test_plan)
+    additional_properties = build.collect_property_files(test_plan)
+    common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", True)
+    test_plan_abs_path = build.abs_path_test_plan(test_plan_base_dir, test_plan)
+    test_plan_instance = TestPlan(test_plan_abs_path)
 
-if build.debug:
-    test_plan.set_on_sample_error("continue")
+    if build.debug:
+        test_plan_instance.set_on_sample_error("stopthread")
 
-test_plan.change_controller_type()
-test_plan.save(test_plan_abs_path)
+    test_plan_instance.change_controller_type()
+    test_plan_instance.save(test_plan_abs_path)
+
 build.generate_new_build_xml(jenkins_job_workspace, jmeter_home, test_name, test_plan_base_dir, new_build_xml)
