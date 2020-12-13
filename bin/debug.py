@@ -19,5 +19,7 @@ if update_snapshot:
     nacos_new.make_snapshot(snapshot_dir)
 
 build = Builder(jenkins_job_name)
-additional_properties = build.collect_property_files()
-common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", False)
+for test_plan in build.relative_path_test_plans:
+    print("Collect properties for test plan: " + test_plan)
+    additional_properties = build.collect_property_files(test_plan)
+    common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", False)
