@@ -149,4 +149,5 @@ cython_debug/
 
 # project specific
 snapshot/
-
+test/*.jmx
+test/*.xml
