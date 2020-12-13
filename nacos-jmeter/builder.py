@@ -204,6 +204,6 @@ class Builder(object):
             })
             target_xslt_report_element.append(xslt_element)
 
-        with open(f"{jenkins_job_workspace}/jmx.json") as f:
+        with open(f"{jenkins_job_workspace}/jmx.json", "w") as f:
             json.dump(jmx_file_names, f)
         tree.write(output_build_xml)
