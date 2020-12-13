@@ -120,7 +120,12 @@ class Builder(object):
             yaml_to_dict = yaml.safe_load(f)
         assert relative_path_test_plan in yaml_to_dict.keys(), \
             f"The key named with JMeter test plan '{relative_path_test_plan}' not defined in file {jenkins_and_jmeter_conf}"
+
         devices = yaml_to_dict[relative_path_test_plan]
+        assert isinstance(devices, str) or isinstance(devices, list), "devices can only be string or list."
+
+        if isinstance(devices, str):
+            devices = [devices]
 
         # initiate a rule instance
         r = Rule(['cross-env', self.stage], devices, self.debug)
