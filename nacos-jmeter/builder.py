@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -167,8 +168,10 @@ class Builder(object):
         jmeter_home_element.set("value", jmeter_home)
         test_name_element.set("value", test_name)
 
+        jmx_file_names = []
         for test_plan in self.relative_path_test_plans:
             jmx_file_name = os.path.splitext(os.path.basename(test_plan))[0]
+            jmx_file_names.append(jmx_file_name)
             result_jtl = f"{jenkins_job_workspace}/{jmx_file_name}.jtl"
             result_html = f"{jenkins_job_workspace}/reports/{jmx_file_name}.html"
             abs_path_test_plan = self.abs_path_test_plan(test_plan_base_dir, test_plan)
@@ -201,4 +204,6 @@ class Builder(object):
             })
             target_xslt_report_element.append(xslt_element)
 
+        with open(f"{jenkins_job_workspace}/jmx.json") as f:
+            json.dump(jmx_file_names, f)
         tree.write(output_build_xml)
