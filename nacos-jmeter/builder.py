@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from loguru import logger
 import yaml
 
+import common
 from nacos import Rule
 import settings
 
@@ -166,8 +167,11 @@ class Builder(object):
             result_jtl = f"{jenkins_job_workspace}/{jmx_file_name}.jtl"
             result_html = f"{jenkins_job_workspace}/reports/{jmx_file_name}.html"
             abs_path_test_plan = self.abs_path_test_plan(test_plan_base_dir, test_plan)
+
+            print("Collect properties for test plan: " + test_plan)
             # additional properties, multi-properties should be separated by ','
             additional_properties = self.collect_property_files(test_plan)
+            common.concatenate_files(additional_properties, f"../snapshot/{self.jenkins_job_name}.properties", True)
 
             ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
             jmeter_element = ET.Element("jmeter", attrib={

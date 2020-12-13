@@ -14,9 +14,6 @@ new_build_xml = sys.argv[6]
 
 build = Builder(jenkins_job_name)
 for test_plan in build.relative_path_test_plans:
-    print("Collect properties for test plan: " + test_plan)
-    additional_properties = build.collect_property_files(test_plan)
-    common.concatenate_files(additional_properties, f"../snapshot/{jenkins_job_name}.properties", True)
     test_plan_abs_path = build.abs_path_test_plan(test_plan_base_dir, test_plan)
     test_plan_instance = TestPlan(test_plan_abs_path)
 
