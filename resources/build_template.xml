@@ -29,7 +29,7 @@
         <fileset dir="${lib.dir}" includes="serializer*.jar"/>
     </path>
 
-    <target name="report" depends="xslt-report,copy-images">
+    <target name="report" depends="xslt-report">
         <echo>Report generated at ${report.datestamp}</echo>
     </target>
 
