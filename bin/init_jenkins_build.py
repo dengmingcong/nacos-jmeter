@@ -18,7 +18,7 @@ for test_plan in build.relative_path_test_plans:
     test_plan_instance = TestPlan(test_plan_abs_path)
 
     if build.debug:
-        test_plan_instance.set_on_sample_error("stopthread")
+        test_plan_instance.set_on_sample_error("continue")
 
     test_plan_instance.change_controller_type()
     test_plan_instance.save(test_plan_abs_path)
