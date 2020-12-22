@@ -44,10 +44,12 @@ class Builder(object):
             stage = "testonline"
         elif lowercase_job_name.endswith("predeploy"):
             stage = "predeploy"
+        elif lowercase_job_name.endswith("production"):
+            stage = "production"
         else:
             raise ValueError(
                 f"Your job name {self.jenkins_job_name} are supposed to end with either one of "
-                f"'ci', 'testonline' and 'predeploy' (case insensitive)"
+                f"'ci', 'testonline', 'predeploy' or 'production' (case insensitive)"
             )
         logger.info(f"Stage gotten from job name: {stage}")
         return stage
@@ -60,7 +62,7 @@ class Builder(object):
     def _remove_modifiers(self):
         """Remove prefix and suffix of job name."""
         job_name_without_modifier = re.sub("(?i)(regression|debug)[-|_]", "", self.jenkins_job_name)
-        job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy)", "", job_name_without_modifier)
+        job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy|production)", "", job_name_without_modifier)
         logger.info(f"Job name without modifiers: {job_name_without_modifier}")
         return job_name_without_modifier
 

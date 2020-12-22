@@ -18,7 +18,8 @@ class Nacos(object):
             "cross-env": {"id": "cross-env"},
             "ci": {"id": "env-01"},
             "testonline": {"id": "env-02"},
-            "predeploy": {"id": "env-03"}
+            "predeploy": {"id": "env-03"},
+            "production": {"id": "env-04"}
         }
         assert self.is_website_online(), f"Error. Cannot open login page {self.login_url} now."
 
@@ -92,7 +93,7 @@ class Rule(object):
         """
         # check parameters
         for namespace in namespaces:
-            assert namespace in ['cross-env', 'ci', 'testonline', 'predeploy'], \
+            assert namespace in ['cross-env', 'ci', 'testonline', 'predeploy', 'production'], \
                 f"Unrecognized namespace {namespace} (supposed to be one of cross-env, ci, testonline or predeploy)"
 
         # set namespaces
