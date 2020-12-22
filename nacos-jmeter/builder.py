@@ -84,10 +84,16 @@ class Builder(object):
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
         test_plans = yaml_to_dict[self.job_name_without_modifier]
-        assert isinstance(test_plans, str) or isinstance(test_plans, list), "test plan can only be string or list."
+        assert isinstance(test_plans, str) or isinstance(test_plans, list) or isinstance(test_plans, dict), \
+            "test plan can only be string, list or dict."
 
+        # TODO: simplify code
         if isinstance(test_plans, str):
             test_plans = [test_plans]
+        elif isinstance(test_plans, dict):
+            test_plans = test_plans[self.stage]
+            if isinstance(test_plans, str):
+                test_plans = [test_plans]
 
         for test_plan in test_plans:
             assert not test_plan.startswith("/"), f"only relative path was accepted, but {test_plan} starts with '/'"
