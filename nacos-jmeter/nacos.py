@@ -59,7 +59,7 @@ class Nacos(object):
             jenkins_jmx_relationship_group_dir = f"{dst_dir}/public/{settings.JENKINS_JMX_RELATIONSHIP_GROUP}"
             Path(jenkins_jmx_relationship_group_dir).mkdir(parents=True, exist_ok=True)
             logger.info(f"jenkins jmx conf content: \n{jenkins_jmx_conf_yaml}")
-            with open(f"{jenkins_jmx_relationship_group_dir}/{settings.JENKINS_JMX_RELATIONSHIP_DATA_ID}", "w") as f:
+            with open(f"{jenkins_jmx_relationship_group_dir}/{settings.JENKINS_JMX_RELATIONSHIP_DATA_ID}", "w", encoding='utf-8') as f:
                 f.write(jenkins_jmx_conf_yaml)
 
 
@@ -161,7 +161,7 @@ class Rule(object):
                         logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - path: {config_file}")
                         content = response.text
                         logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - content:\n{content}")
-                        with open(config_file, "w") as f:
+                        with open(config_file, "w", encoding="utf-8") as f:
                             f.write(content)
 
         return data_id_paths

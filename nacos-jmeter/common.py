@@ -8,7 +8,7 @@ def concatenate_files(files: list, out: str, to_stdout=False):
     :param out: file to save concatenated text
     :param to_stdout: print to stdout if set True
     """
-    with open(out, "w") as out_file:
+    with open(out, "w", encoding="utf-8") as out_file:
         # print("# all properties collected", file=out_file)
         out_file.write("# all properties collected from Nacos snapshot")
         for file in files:
@@ -19,10 +19,10 @@ def concatenate_files(files: list, out: str, to_stdout=False):
             #=========================================================
             """)
             print(header, file=out_file)
-            with open(file, 'r') as in_file:
+            with open(file, 'r', encoding="utf-8") as in_file:
                 # shutil.copyfileobj(in_file, out_file)
                 out_file.write(in_file.read())
 
     if to_stdout:
-        with open(out, 'r') as out_file:
+        with open(out, 'r', encoding="utf-8") as out_file:
             print(out_file.read())
