@@ -1,6 +1,14 @@
-from snapshot import Nacos, Rule
+import nacos
 
-n = Nacos("34.234.176.173", 8848)
-n.make_snapshot("../snapshot")
-r = Rule(["cross-env", "ci"], ["WiFiBTOnboardingNotify_AirPurifier_LAP-C4004S-WUSR_US"], True)
-print(r.apply_to_snapshot("../snapshot"))
+SERVER_ADDRESSES = "127.0.0.1"
+NAMESPACE = "cross-env"
+
+# no auth mode
+client = nacos.NacosClient(SERVER_ADDRESSES, namespace=NAMESPACE)
+# auth mode
+#client = nacos.NacosClient(SERVER_ADDRESSES, namespace=NAMESPACE, username="nacos", password="nacos")
+
+# get config
+data_id = "common"
+group = "SHARED"
+print(client.get_config(data_id, group))
