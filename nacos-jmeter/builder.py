@@ -191,7 +191,7 @@ class Builder(object):
             common.concatenate_files(additional_properties, concatenated_property_file, True)
 
             # call native2ascii to convert property file to fit ISO 8859-1
-            common.convert_property_file(concatenated_property_file, concatenated_property_file)
+            # common.convert_property_file(concatenated_property_file, concatenated_property_file)
 
             ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
             jmeter_element = ET.Element("jmeter", attrib={
