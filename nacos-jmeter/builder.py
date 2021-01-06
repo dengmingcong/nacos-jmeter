@@ -187,7 +187,11 @@ class Builder(object):
             print("Collect properties for test plan: " + test_plan)
             # additional properties, multi-properties should be separated by ','
             additional_properties = self.collect_property_files(test_plan)
-            common.concatenate_files(additional_properties, f"../snapshot/{self.jenkins_job_name}.properties", True)
+            concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.properties"
+            common.concatenate_files(additional_properties, concatenated_property_file, True)
+
+            # call native2ascii to convert property file to fit ISO 8859-1
+            common.convert_property_file(concatenated_property_file, concatenated_property_file)
 
             ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
             jmeter_element = ET.Element("jmeter", attrib={
@@ -196,11 +200,7 @@ class Builder(object):
                 "resultlog": result_jtl
             })
 
-            for item in additional_properties:
-                # TODO: check based on OS type
-                # assert item.startswith("/"), f"{item} is supposed to be a absolute path (starts with '/')."
-                assert os.path.exists(item.strip()), "file or directory {} does not exist.".format(item)
-                ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(item.strip())})
+            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(concatenated_property_file)})
             target_run_element.append(jmeter_element)
 
             xslt_element = ET.Element("xslt", {
