@@ -3,12 +3,12 @@ import sys
 sys.path.append("../nacos-jmeter")
 
 from builder import Builder
-from nacos import Nacos
+from snapshot import Nacos
 import common
 import settings
 
 
-jenkins_job_name = "fullTest-Core400SUS-Cloud-API-Predeploy"
+jenkins_job_name = "fullTest-Core400SUS-Cloud-API-CI"
 update_snapshot = True
 
 # update Nacos snapshot if set true
@@ -24,4 +24,5 @@ for test_plan in build.relative_path_test_plans:
     test_plan_file_name = os.path.splitext(os.path.basename(test_plan))[0]
     print("Collect properties for test plan: " + test_plan)
     additional_properties = build.collect_property_files(test_plan)
-    common.concatenate_files(additional_properties, f"../snapshot/{test_plan_file_name}-{build.stage}.properties", False)
+    concatenated_property_file = f"../snapshot/{test_plan_file_name}-{build.stage}.properties"
+    common.concatenate_files(additional_properties, concatenated_property_file, False)
