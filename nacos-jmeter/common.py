@@ -40,7 +40,9 @@ def convert_property_file(property_file, out):
                          r"\path\to\jdk\bin\native2ascii.exe -encoding UTF-8 src.properties dst.properties")
     else:
         native2ascii_basename = "native2ascii"
-    native2ascii_full_path = os.path.join(os.getenv('JAVA_HOME'), 'bin', native2ascii_basename)
+    java_home = os.getenv('JAVA_HOME')
+    logger.debug(f"JAVA_HOME: {java_home}")
+    native2ascii_full_path = os.path.join(java_home, 'bin', native2ascii_basename)
     logger.debug(f"native2ascii: {native2ascii_full_path}")
     result = subprocess.run([native2ascii_full_path, '-encoding', 'UTF-8', property_file, out])
     logger.debug(f"Arguments: {result.args}")
