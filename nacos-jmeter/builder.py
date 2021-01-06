@@ -8,7 +8,7 @@ from loguru import logger
 import yaml
 
 import common
-from nacos import Rule
+from snapshot import Rule
 import settings
 
 

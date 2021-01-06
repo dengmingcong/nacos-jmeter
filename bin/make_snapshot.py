@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../nacos-jmeter")
 
-from nacos import Nacos
+from snapshot import Nacos
 import settings
 
 

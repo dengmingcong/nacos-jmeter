@@ -1,4 +1,4 @@
-from nacos import Nacos, Rule
+from snapshot import Nacos, Rule
 
 n = Nacos("34.234.176.173", 8848)
 n.make_snapshot("../snapshot")
