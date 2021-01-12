@@ -11,12 +11,17 @@
     
     <!-- Name of test (without .jmx) -->
     <property name="test" value=""/>
-    
+
     <taskdef
         name="jmeter"
         classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"/>
     
-    <target name="all" depends="run,report"/>
+    <target name="all" depends="encode-properties,run,report"/>
+
+    <target name="encode-properties">
+        <native2ascii encoding="UTF-8" src="${jenkins.job.workspace}" dest="${jenkins.job.workspace}"
+                      includes="*.utf8" ext=".properties"/>
+    </target>
 
     <target name="run"/>
 
