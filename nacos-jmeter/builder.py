@@ -165,6 +165,7 @@ class Builder(object):
         assert os.path.exists(jenkins_job_workspace), "file or directory {} does not exist".format(jenkins_job_workspace)
         assert os.path.exists(jmeter_home), "file or directory {} does not exist".format(jmeter_home)
 
+        # find elements to be reassigned
         tree = ET.parse(self.sample_build_xml)
         jenkins_job_workspace_element = tree.find("property[@name='jenkins.job.workspace']")
         jmeter_home_element = tree.find("property[@name='jmeter.home']")
@@ -172,10 +173,12 @@ class Builder(object):
         target_run_element = tree.find("target[@name='run']")
         target_xslt_report_element = tree.find("target[@name='xslt-report']")
 
+        # set jenkins workspace, jmeter home, and test name
         jenkins_job_workspace_element.set("value", jenkins_job_workspace)
         jmeter_home_element.set("value", jmeter_home)
         test_name_element.set("value", test_name)
 
+        # list every test plan under target "run", represented by <jmeter> element
         jmx_file_names = []
         for test_plan in self.relative_path_test_plans:
             jmx_file_name = os.path.splitext(os.path.basename(test_plan))[0]
@@ -184,25 +187,29 @@ class Builder(object):
             result_html = f"{jenkins_job_workspace}/reports/{jmx_file_name}.html"
             abs_path_test_plan = self.abs_path_test_plan(test_plan_base_dir, test_plan)
 
+            # collect properties
             print("Collect properties for test plan: " + test_plan)
-            # additional properties, multi-properties should be separated by ','
             additional_properties = self.collect_property_files(test_plan)
-            concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.properties"
-            common.concatenate_files(additional_properties, concatenated_property_file, True)
 
-            # call native2ascii to convert property file to fit ISO 8859-1
-            # common.convert_property_file(concatenated_property_file, concatenated_property_file)
+            # name property file with extension ".utf8" for later conversion in ant task native2ascii
+            src_concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.utf8"
+            dst_concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.properties"
+            common.concatenate_files(additional_properties, src_concatenated_property_file, True)
 
             ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
+
+            # set attributes for each <jmeter> element
             jmeter_element = ET.Element("jmeter", attrib={
                 "jmeterhome": jmeter_home,
                 "testplan": abs_path_test_plan,
                 "resultlog": result_jtl
             })
 
-            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(concatenated_property_file)})
+            # add sub element <jmeterarg> to <jmeter>
+            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(dst_concatenated_property_file)})
             target_run_element.append(jmeter_element)
 
+            # add xslt element for each test plan
             xslt_element = ET.Element("xslt", {
                 "classpathref": "xslt.classpath",
                 "force": "true",
@@ -212,6 +219,8 @@ class Builder(object):
             })
             target_xslt_report_element.append(xslt_element)
 
+        # save file names of all test plans to file jmx.json, used to prepend [PASS] or [FAIL] based on jtl
         with open(f"{jenkins_job_workspace}/jmx.json", "w") as f:
             json.dump(jmx_file_names, f)
+
         tree.write(output_build_xml)
