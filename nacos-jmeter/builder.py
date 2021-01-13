@@ -98,6 +98,7 @@ class Builder(object):
         for test_plan in test_plans:
             assert not test_plan.startswith("/"), f"only relative path was accepted, but {test_plan} starts with '/'"
 
+        logger.debug(f"all test plans got: {test_plans}")
         return test_plans
 
     @staticmethod
