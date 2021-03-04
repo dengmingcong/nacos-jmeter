@@ -13,6 +13,8 @@ elif stage == "testonline":
     host = settings.HOST_TESTONLINE
 elif stage == "predeploy":
     host = settings.HOST_PREDEPLOY
+elif stage == "sit":
+    host = settings.HOST_SIT
 else:
     raise ValueError("stage error")
 nacos_new = Nacos(host, settings.PORT)
