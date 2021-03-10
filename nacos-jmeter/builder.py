@@ -113,7 +113,7 @@ class Builder(object):
                 logger.info(f"object assigned to {self.stage}: {object_to_stage}")
                 if isinstance(object_to_stage, str):
                     test_plans = [object_to_stage]
-                elif isinstance(test_plans, list):
+                elif isinstance(object_to_stage, list):
                     test_plans = [object_to_stage]
                 elif isinstance(object_to_stage, dict):
                     test_plans = self.set_parallel(object_to_stage)
