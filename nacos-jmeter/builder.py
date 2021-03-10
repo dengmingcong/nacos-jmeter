@@ -34,6 +34,7 @@ class Builder(object):
         self.debug = self._debug()
         self.job_name_without_modifier = self._remove_modifiers()
         self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
+        self.parallel = False
 
     def _get_test_stage_from_job_name(self):
         """Get test stage from the jenkins job name."""
@@ -66,10 +67,24 @@ class Builder(object):
         logger.info(f"Job name without modifiers: {job_name_without_modifier}")
         return job_name_without_modifier
 
+    def set_parallel(self, data: dict) -> list:
+        """
+        Set parallel based on key 'parallel'.
+        :param data: a dict, which contains required key "testplans" and optional "parallel"
+        """
+        assert "testplans" in data.keys(), f"Key 'testplans' must exist in the dict {data}."
+        test_plans = data["testplans"]
+        assert isinstance(test_plans, list) or isinstance(test_plans, str), \
+            f"Values assigned to 'testplans' must be an instance of list or str."
+        if "parallel" in data.keys():
+            assert isinstance(data["parallel"], bool), "Value assigned to 'parallel' must be boolean."
+            self.parallel = data["parallel"]
+        return test_plans
+
     def _get_jmeter_relative_path_test_plans(self) -> list:
         """
         Get the JMeter test plans from nacos.jmeter.test-plan.
-        Only relative path (relative to ) are accepted.
+        Only relative path (relative to repository root) are accepted.
         :return: a list of test plans
         """
         jenkins_and_jmeter_conf = os.path.join(
@@ -83,17 +98,28 @@ class Builder(object):
             yaml_to_dict = yaml.safe_load(f)
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
-        test_plans = yaml_to_dict[self.job_name_without_modifier]
-        assert isinstance(test_plans, str) or isinstance(test_plans, list) or isinstance(test_plans, dict), \
-            "test plan can only be string, list or dict."
+        object_to_job_name = yaml_to_dict[self.job_name_without_modifier]
 
-        # TODO: simplify code
-        if isinstance(test_plans, str):
-            test_plans = [test_plans]
-        elif isinstance(test_plans, dict):
-            test_plans = test_plans[self.stage]
-            if isinstance(test_plans, str):
-                test_plans = [test_plans]
+        test_plans = []
+        if isinstance(object_to_job_name, str):
+            test_plans = [object_to_job_name]
+        elif isinstance(object_to_job_name, list):
+            test_plans = object_to_job_name
+        elif isinstance(object_to_job_name, dict):
+            if self.stage in object_to_job_name.keys():
+                object_to_stage = object_to_job_name[self.stage]
+                if isinstance(object_to_stage, str):
+                    test_plans = [object_to_stage]
+                elif isinstance(test_plans, list):
+                    test_plans = [object_to_stage]
+                elif isinstance(object_to_stage, dict):
+                    test_plans = self.set_parallel(object_to_stage)
+                else:
+                    raise ValueError(f"Object assigned to {self.stage} can only be string, list or dict.")
+            else:
+                test_plans = self.set_parallel(object_to_job_name)
+        else:
+            raise ValueError(f"Object assigned to {self.job_name_without_modifier} can only be string, list or dict.")
 
         for test_plan in test_plans:
             assert not test_plan.startswith("/"), f"only relative path was accepted, but {test_plan} starts with '/'"
@@ -179,7 +205,12 @@ class Builder(object):
         jmeter_home_element.set("value", jmeter_home)
         test_name_element.set("value", test_name)
 
-        # list every test plan under target "run", represented by <jmeter> element
+        # create element "parallel"
+        ant_parallel_element = ET.Element("parallel")
+        if self.parallel:
+            target_run_element.append(ant_parallel_element)
+
+        # list every test plan under target "run", showed as <jmeter> element
         jmx_file_names = []
         for test_plan in self.relative_path_test_plans:
             jmx_file_name = os.path.splitext(os.path.basename(test_plan))[0]
@@ -197,8 +228,6 @@ class Builder(object):
             dst_concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.properties"
             common.concatenate_files(additional_properties, src_concatenated_property_file, True)
 
-            ET.SubElement(target_run_element, "delete", attrib={"file": result_jtl})
-
             # set attributes for each <jmeter> element
             jmeter_element = ET.Element("jmeter", attrib={
                 "jmeterhome": jmeter_home,
@@ -208,7 +237,11 @@ class Builder(object):
 
             # add sub element <jmeterarg> to <jmeter>
             ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(dst_concatenated_property_file)})
-            target_run_element.append(jmeter_element)
+
+            if self.parallel:
+                ant_parallel_element.append(jmeter_element)
+            else:
+                target_run_element.append(jmeter_element)
 
             # add xslt element for each test plan
             xslt_element = ET.Element("xslt", {
