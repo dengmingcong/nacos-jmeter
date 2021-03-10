@@ -114,7 +114,7 @@ class Builder(object):
                 if isinstance(object_to_stage, str):
                     test_plans = [object_to_stage]
                 elif isinstance(object_to_stage, list):
-                    test_plans = [object_to_stage]
+                    test_plans = object_to_stage
                 elif isinstance(object_to_stage, dict):
                     test_plans = self.set_parallel(object_to_stage)
                 else:
