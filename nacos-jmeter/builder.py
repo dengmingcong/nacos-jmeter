@@ -26,6 +26,7 @@ class Builder(object):
 
         :param jenkins_job_name: name of Jenkins job, for example, debug-fullTest-Core400SUSR-Cloud-API-ci
         """
+        self.parallel = False
         self.sample_build_xml = "../resources/build_template.xml"
         self.nacos_snapshot = "../snapshot"
         self.jenkins_job_name = jenkins_job_name
@@ -34,7 +35,6 @@ class Builder(object):
         self.debug = self._debug()
         self.job_name_without_modifier = self._remove_modifiers()
         self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
-        self.parallel = False
 
     def _get_test_stage_from_job_name(self):
         """Get test stage from the jenkins job name."""
@@ -79,7 +79,7 @@ class Builder(object):
         if "parallel" in data.keys():
             assert isinstance(data["parallel"], bool), "Value assigned to 'parallel' must be boolean."
             self.parallel = data["parallel"]
-        logger.info(f"self.parallel is set to: ${self.parallel}")
+        logger.info(f"self.parallel is set to: {self.parallel}")
         return test_plans
 
     def _get_jmeter_relative_path_test_plans(self) -> list:
