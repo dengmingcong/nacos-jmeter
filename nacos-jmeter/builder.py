@@ -79,6 +79,7 @@ class Builder(object):
         if "parallel" in data.keys():
             assert isinstance(data["parallel"], bool), "Value assigned to 'parallel' must be boolean."
             self.parallel = data["parallel"]
+        logger.info(f"self.parallel is set to: ${self.parallel}")
         return test_plans
 
     def _get_jmeter_relative_path_test_plans(self) -> list:
@@ -99,6 +100,7 @@ class Builder(object):
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
         object_to_job_name = yaml_to_dict[self.job_name_without_modifier]
+        logger.info(f"object assigned to {self.job_name_without_modifier}: {object_to_job_name}")
 
         test_plans = []
         if isinstance(object_to_job_name, str):
@@ -108,6 +110,7 @@ class Builder(object):
         elif isinstance(object_to_job_name, dict):
             if self.stage in object_to_job_name.keys():
                 object_to_stage = object_to_job_name[self.stage]
+                logger.info(f"object assigned to {self.stage}: {object_to_stage}")
                 if isinstance(object_to_stage, str):
                     test_plans = [object_to_stage]
                 elif isinstance(test_plans, list):
