@@ -16,7 +16,7 @@
         name="jmeter"
         classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"/>
     
-    <target name="all" depends="encode-properties,delete-jtls,run,report"/>
+    <target name="all" depends="run,report"/>
 
     <target name="encode-properties">
         <native2ascii encoding="UTF-8" src="${jenkins.job.workspace}" dest="${jenkins.job.workspace}"
@@ -29,7 +29,7 @@
 		</delete>
 	</target>
 
-    <target name="run"/>
+    <target name="run" depends="encode-properties,delete-jtls"/>
 
     <property name="lib.dir" value="${jmeter.home}/lib"/>
 
