@@ -17,8 +17,8 @@ for test_plan in build.relative_path_test_plans:
     test_plan_abs_path = build.abs_path_test_plan(test_plan_base_dir, test_plan)
     test_plan_instance = TestPlan(test_plan_abs_path)
 
-    if build.debug:
-        test_plan_instance.set_on_sample_error(settings.ON_SAMPLE_ERROR_ACTION)
+    # if build.debug:
+    #     test_plan_instance.set_on_sample_error(settings.ON_SAMPLE_ERROR_ACTION)
 
     test_plan_instance.change_controller_type()
     test_plan_instance.save(test_plan_abs_path)
