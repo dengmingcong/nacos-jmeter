@@ -1,14 +1,16 @@
 import nacos
+import settings
 
-SERVER_ADDRESSES = "127.0.0.1"
-NAMESPACE = "cross-env"
+SERVER_ADDRESSES = f"{settings.HOST_CI}"
+NAMESPACE = "env-01"
 
 # no auth mode
 client = nacos.NacosClient(SERVER_ADDRESSES, namespace=NAMESPACE)
+# client.set_options(no_snapshot=True)
 # auth mode
 #client = nacos.NacosClient(SERVER_ADDRESSES, namespace=NAMESPACE, username="nacos", password="nacos")
 
 # get config
 data_id = "common"
 group = "SHARED"
-print(client.get_config(data_id, group))
+print(client.get_configs())
