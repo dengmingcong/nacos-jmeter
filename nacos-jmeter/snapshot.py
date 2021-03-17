@@ -1,26 +1,23 @@
+from multiprocessing import Pool
 from pathlib import Path
+import json
 import os
 
 from loguru import logger
+import nacos
 import requests
-import yaml
-
-import settings
 
 
 class Nacos(object):
 
     def __init__(self, host, port):
         """Init class."""
-        self.login_url = f"http://{host}:{port}/nacos/#/login"
-        self.get_config_url = f"http://{host}:{port}/nacos/v1/cs/configs"
-        self.namespaces = {
-            "cross-env": {"id": "cross-env"},
-            "ci": {"id": "env-01"},
-            "testonline": {"id": "env-02"},
-            "predeploy": {"id": "env-03"},
-            "production": {"id": "env-04"}
-        }
+        self.host = host
+        self.host_port = f"http://{host}:{port}"
+        self.login_path = f"/nacos/#/login"
+        self.login_url = f"{self.host_port}{self.login_path}"
+        self.get_namespaces_path = f"/nacos/v1/console/namespaces"
+        self.get_namespaces_url = f"{self.host_port}{self.get_namespaces_path}"
         assert self.is_website_online(), f"Error. Cannot open login page {self.login_url} now."
 
     def is_website_online(self):
@@ -28,39 +25,32 @@ class Nacos(object):
         logger.info(f"nacos login url: {self.login_url}")
         return requests.get(self.login_url).status_code == 200
 
-    def make_snapshot(self, dst_dir):
+    def _get_one_namespace_configs(self, namespace_id, namespace_name, namespace_config_count, snapshot_base):
+        nacos_client = nacos.NacosClient(self.host, namespace=namespace_id)
+        nacos_client.set_options(snapshot_base=snapshot_base)
+        logger.info(f"Get configs from namespace: {namespace_name}")
+        nacos_client.get_configs(page_size=namespace_config_count)
+
+    def make_snapshot(self, snapshot_base):
         """
-        Make snapshot of Nacos based on the global rule.
-        Configurations in namespace 'public' will be downloaded yet.
+        Download all configurations of every namespace to local.
+        Files with the same name will be overwritten.
 
-        :param dst_dir: directory to store snapshot
+        :param snapshot_base: Dir to store snapshot config files.
         """
-        # get rule for snapshot
-        payload = {
-            "group": settings.SNAPSHOT_RULE_GROUP,
-            "dataId": settings.SNAPSHOT_RULE_DATA_ID
-        }
-        rules_yaml = requests.get(self.get_config_url, params=payload).text
-        logger.info(f"snapshot rule content: \n{rules_yaml}")
-        rules_dict = yaml.safe_load(rules_yaml)
-
-        # make snapshot
-        rule = Rule(rules_dict["namespaces"], rules_dict["devices"], True)
-        rule.apply_to_nacos(self, dst_dir=dst_dir)
-
-        # download configurations in namespace 'public'
-        payload_jenkins_jmx_conf = {
-            "group": settings.JENKINS_JMX_RELATIONSHIP_GROUP,
-            "dataId": settings.JENKINS_JMX_RELATIONSHIP_DATA_ID
-        }
-        response = requests.get(self.get_config_url, params=payload_jenkins_jmx_conf)
-        if response.status_code == 200:
-            jenkins_jmx_conf_yaml = response.text
-            jenkins_jmx_relationship_group_dir = f"{dst_dir}/public/{settings.JENKINS_JMX_RELATIONSHIP_GROUP}"
-            Path(jenkins_jmx_relationship_group_dir).mkdir(parents=True, exist_ok=True)
-            logger.info(f"jenkins jmx conf content: \n{jenkins_jmx_conf_yaml}")
-            with open(f"{jenkins_jmx_relationship_group_dir}/{settings.JENKINS_JMX_RELATIONSHIP_DATA_ID}", "w", encoding='utf-8') as f:
-                f.write(jenkins_jmx_conf_yaml)
+        # get all namespaces information
+        response = requests.get(self.get_namespaces_url).text
+        logger.info(f"Response of {self.get_namespaces_path}: {response}")
+        namespaces = json.loads(response)["data"]
+        p = Pool(len(namespaces))
+        for item in namespaces:
+            namespace_id = item["namespace"]
+            namespace_id = None if not namespace_id else namespace_id
+            namespace_name = item["namespaceShowName"]
+            namespace_config_count = item["configCount"]
+            p.apply_async(self._get_one_namespace_configs, args=(namespace_id, namespace_name, namespace_config_count, snapshot_base))
+        p.close()
+        p.join()
 
 
 class Rule(object):
