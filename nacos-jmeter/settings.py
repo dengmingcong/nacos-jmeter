@@ -20,5 +20,8 @@ JENKINS_JMX_RELATIONSHIP_GROUP = "DEFAULT_GROUP"
 ON_SAMPLE_ERROR_ACTION = "stopthread"
 
 DATA_BASE = os.path.join(PROJECT_ROOT, "data")
-SNAPSHOT_BASE = os.path.join(DATA_BASE, "snapshot")
 COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
+NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
+NACOS_SNAPSHOT_REPO_DIR = f"d:/03 mp products/01 cg Git代码/{NACOS_SNAPSHOT_REPO_NAME}"
+NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
+NACOS_CLIENT_DEBUGGING = False
