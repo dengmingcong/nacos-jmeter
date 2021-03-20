@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+from pathlib import Path
 import datetime
 import json
 import os
@@ -135,6 +136,7 @@ class NacosSyncer(object):
         """
         # save commit history in self.index to history file
         commit_messages = "\n".join(self.index)
+        Path(os.path.dirname(self.commit_history_file)).mkdir(parents=True, exist_ok=True)
         with open(self.commit_history_file, "a", encoding="utf-8") as history_file:
             history_file.write(commit_messages + "\n")
         self.index.clear()
