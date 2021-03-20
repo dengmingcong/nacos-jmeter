@@ -149,9 +149,6 @@ class NacosSyncer(object):
 
         if self.nacos_snapshot_repo.is_dirty(untracked_files=True):
             logger.info(f"Changes in local repo {self.nacos_snapshot_repo_dir} found, commit and push starts.")
-            logger.debug("pull start")
-            origin.pull()  # pull once before pushing to prevent conflict.
-            logger.debug("pull end")
             logger.debug("add start")
             self.nacos_snapshot_repo.git.add(A=True)
             logger.debug("add end")
@@ -162,8 +159,16 @@ class NacosSyncer(object):
             info = origin.push()
             # flags of ERROR begins with 1024
             if info[0].flags >= 1024:
-                logger.error(f"Error occurs while pushing to remote, "
-                             f"summary: {info[0].summary}, flags: {info[0].flags}, commit messages: {commit_messages}")
+                logger.warning(f"Failed to push to remote, "
+                               f"summary: {info[0].summary}, flags: {info[0].flags}, commit messages: {commit_messages}"
+                               f"try to pull before push.")
+                logger.debug("pull start")
+                origin.pull()  # pull once before pushing to prevent conflict.
+                logger.debug("pull end")
+                info_again = origin.push()
+                if info_again[0].flags >= 1024:
+                    logger.error(f"Failed to push even pulled before,"
+                                 f"summary: {info[0].summary}, flags: {info[0].flags}, commit messages: {commit_messages}")
             else:
                 logger.info("Push to remote successfully.")
         else:
