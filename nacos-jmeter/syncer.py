@@ -1,5 +1,4 @@
 from multiprocessing import Pool
-from pathlib import Path
 import datetime
 import json
 import os
@@ -185,8 +184,13 @@ class NacosSyncer(object):
             self.sync_task_reason = self.clean_index()
             try:
                 logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
+                time.sleep(5)
                 self.make_snapshot(self.nacos_snapshot_repo_dir)
                 self.commit_and_push_to_remote(self.sync_task_reason)
+                # Note:
+                #   When one watcher is running and then another change occurs, the NacosClient will record the
+                #   change but will not call callbacks immediately (call callbacks after last watcher finished instead).
+                #   So the IF block below will never run.
                 if len(self.index) > 0:
                     logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), "
                                 f"but index is not empty, begin to sync again.")
@@ -206,5 +210,3 @@ class NacosSyncer(object):
         nacos_client.add_config_watchers(self.sync_trigger_data_id, self.sync_trigger_group, [self.add, self.sync_to_git])
         while True:
             time.sleep(0.1)
-
-
