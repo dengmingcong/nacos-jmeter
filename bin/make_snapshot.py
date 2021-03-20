@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../nacos-jmeter")
 
-from snapshot import Nacos
+from syncer import NacosSyncer
 import settings
 
 
@@ -17,5 +17,5 @@ elif stage == "sit":
     host = settings.HOST_SIT
 else:
     raise ValueError("stage error")
-nacos_new = Nacos(host, settings.PORT)
+nacos_new = NacosSyncer(host, settings.PORT)
 nacos_new.make_snapshot(snapshot_dir)

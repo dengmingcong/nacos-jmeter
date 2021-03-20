@@ -3,7 +3,7 @@ import sys
 sys.path.append("../nacos-jmeter")
 
 from builder import Builder
-from snapshot import Nacos
+from syncer import NacosSyncer
 import common
 import settings
 
@@ -16,7 +16,7 @@ if update_snapshot:
     print("update Nacos snapshot")
     snapshot_dir = "../snapshot"
     host = settings.HOST_CI
-    nacos_new = Nacos(host, settings.PORT)
+    nacos_new = NacosSyncer(host, settings.PORT)
     nacos_new.make_snapshot(snapshot_dir)
 
 build = Builder(jenkins_job_name)
