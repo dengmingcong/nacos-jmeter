@@ -97,6 +97,10 @@ class NacosSyncer(object):
         logger.info(f"Response of {self.nacos_server.get_namespaces_path}: {response}")
         namespaces = json.loads(response)["data"]
         logger.info("Begin to make snapshot of Nacos.")
+        # Note:
+        #   When running in Windows, if another change occurs when handling current change, the process will always wait
+        #   nearly one minute and I don't know why, but in macOS, it works great.
+        #   If running on Linux this happens, log pid to try to find reason.
         p = Pool(len(namespaces))
         for item in namespaces:
             namespace_id = item["namespace"]
@@ -131,8 +135,8 @@ class NacosSyncer(object):
         """
         # save commit history in self.index to history file
         commit_messages = "\n".join(self.index)
-        with open(self.commit_history_file, "w", encoding="utf-8") as history_file:
-            history_file.write(commit_messages)
+        with open(self.commit_history_file, "a", encoding="utf-8") as history_file:
+            history_file.write(commit_messages + "\n")
         self.index.clear()
         return commit_messages
 
@@ -189,7 +193,6 @@ class NacosSyncer(object):
             self.sync_task_reason = self.clean_index()
             try:
                 logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
-                time.sleep(5)
                 self.make_snapshot(self.nacos_snapshot_repo_dir)
                 self.commit_and_push_to_remote(self.sync_task_reason)
                 # Note:
