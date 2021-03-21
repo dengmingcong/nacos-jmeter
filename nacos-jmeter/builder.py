@@ -9,6 +9,7 @@ import yaml
 
 import common
 import settings
+from nacosserver import NacosServer
 
 
 class Builder(object):
@@ -101,7 +102,6 @@ class Builder(object):
         object_to_job_name = yaml_to_dict[self.job_name_without_modifier]
         logger.info(f"object assigned to {self.job_name_without_modifier}: {object_to_job_name}")
 
-        test_plans = []
         if isinstance(object_to_job_name, str):
             test_plans = [object_to_job_name]
         elif isinstance(object_to_job_name, list):
@@ -166,10 +166,10 @@ class Builder(object):
             devices = [devices]
 
         # initiate a rule instance
-        r = Rule(['cross-env', self.stage], devices, self.debug)
+        r = Collector(['cross-env', self.stage], devices, self.debug)
 
         # apply rule to snapshot
-        paths = r.apply_to_snapshot(self.nacos_snapshot)
+        paths = r.collect_for_stage(self.nacos_snapshot)
 
         return paths
 
@@ -262,152 +262,62 @@ class Builder(object):
         tree.write(output_build_xml)
 
 
-class Rule(object):
-    """Class representing rules describing how to download configurations from Nacos for JMeter test plan."""
+class Collector(object):
+    """Class representing rules describing how to collect configurations from Nacos snapshot."""
 
-    def __init__(self, namespaces: list, devices: list, debug=False):
+    def __init__(self, nacos_server: NacosServer, snapshot_base, stages: list):
         """
         Init a rule for a JMeter test plan.
-
-        IMPORTANT NOTES:
-            1. Value of properties "namespaces" and "groups" are both Python lists to keep the order of elements
-            2. The order of elements is important for configuration priority
-
-        An example of rule instance:
-            "namespaces": ["cross-env", "ci"],
-            "groups": [{
-                "group": "SHARED",
-                "data_ids": ["common"]
-            }, {
-                "group": "DEVICE",
-                "data_ids": ["core400s", "core300s"]
-            }, {
-                "group": "DEBUG",
-                "data_ides": ["core400s", "core300s"]
-            }]
-
-        :param namespaces: a list, whose element can only be one of "cross-env", "ci", "testonline", or "predeploy"
-        :param devices: a list of devices
-        :param debug: set True if used for debugging
+        :param snapshot_base: Dir to store snapshot config files, whose parent directory is named with 'nacos-snapshot'.
         """
-        # check parameters
-        for namespace in namespaces:
-            assert namespace in ['cross-env', 'ci', 'testonline', 'predeploy', 'production'], \
-                f"Unrecognized namespace {namespace} (supposed to be one of cross-env, ci, testonline or predeploy)"
+        self.nacos_server = nacos_server
+        assert Path(self.snapshot_base).exists(), f"Error. Directory {self.snapshot_base} does not exist."
+        self.snapshot_base = snapshot_base
 
-        # set namespaces
-        self.namespaces = namespaces
-        logger.info(f"namespaces of current rule: {self.namespaces}")
+        self.cross_env_namespace_id = settings.CROSS_ENV_NAMESPACE_ID
+        self.stage_namespaces = settings.STAGE_NAMESPACES
+        self.target_groups = settings.TARGET_GROUPS
+        
+        self.nacos_snapshot_dict = self._save_nacos_snapshot_to_dict()
 
-        # set groups
-        self.groups = [
-            {
-                "group": "SHARED",
-                "data_ids": ["common"]
-            },
-            {
-                "group": "DEVICE",
-                "data_ids": devices
-            }
-        ]
+    def _save_nacos_snapshot_to_dict(self) -> dict:
+        """Save nacos snapshot """
+        target_namespace_ids = [self.cross_env_namespace_id, *list(self.stage_namespaces.valuse())]
+        nacos_snapshot_dict = {}
 
-        # add group DEBUG if parameter debug was set true
-        if debug:
-            debug_group = {
-                "group": "DEBUG",
-                "data_ids": devices
-            }
-            self.groups.append(debug_group)
-        logger.info(f"groups of current rule: {self.groups}")
+        for namespace_id in target_namespace_ids:
+            for group in self.target_groups:
+                target_namespace_ids[namespace_id][group] = []
 
-    def _collect_one_namespace(self, nacos: NacosSyncer, namespace: str, **options) -> list:
+        for file in os.listdir(self.snapshot_base):
+            # filter out files whose names start with "++"
+            if not file.startswith("++"):
+                parts = file.split("+")
+                # keep only files whose name met format as "foo+bar+baz"
+                if len(parts) == 3:
+                    namespace_id = parts[2]
+                    group = parts[1]
+                    if namespace_id in target_namespace_ids and group in self.target_groups:
+                        nacos_snapshot_dict[namespace_id][group].append(file)
+        
+        return nacos_snapshot_dict
+
+    def collect(self, stage, debug=False) -> list:
         """
-        Collect and return configurations existed from one Nacos namespace.
+        Collect and return configurations existed in local snapshot for specified stage.
+        Each element of the returned list is an absolute path as:
+          /path/to/snapshot/property (format as DATA_ID+GROUP+NAMESPACE)
 
-        1. Each element of the returned list is a tuple of (namespace, group, data_id).
-        2. Parameter 'options' adds functionalities like downloading configurations.
-           Hierarchy of downloaded files would be dst_dir/namespace/group/dataId.
-
-        :param nacos: instance of class Nacos
-        :param namespace: name of namespace
-        :param options: denotes additional functionalities like download configuration files
+        :param stage: stage flag as ci, testonline, ...
+        :param debug: if collect properties with GROUP 'DEBUG'
         :return: list
         """
-        data_id_paths = []
-        namespace_id = nacos.namespaces[namespace]["id"]
-        for group in self.groups:
-            group_name = group["group"]
-            data_ids = group["data_ids"]
-            for data_id in data_ids:
-                payload = {
-                    "tenant": namespace_id,
-                    "group": group_name,
-                    "dataId": data_id
-                }
-                response = requests.get(nacos.get_config_url, params=payload)
+        stage_namespace_id = self.stage_namespaces[stage]
+        valid_stages = self.stage_namespaces.keys()
+        assert stage in valid_stages, f"Stage flag can only be one of {valid_stages}"
+        target_namespace_ids = [self.cross_env_namespace_id, stage_namespace_id]
 
-                # if configuration exists, download it and save data id path to list
-                if response.status_code == 200:
-                    data_id_paths.append((namespace, group_name, data_id))
+        for namespace_id in target_namespace_ids:
+            for group in self.valid_groups:
 
-                    # if the *options* dict contains key 'dst_dir', the existed configurations would be downloaded.
-                    if "dst_dir" in options.keys():
-                        dst_dir = options["dst_dir"]
-                        assert Path(dst_dir).exists(), f"Error. Directory {dst_dir} does not exist."
-                        group_dir = f"{dst_dir}/{namespace}/{group_name}"
-                        config_file = f"{group_dir}/{data_id}"
-                        Path(group_dir).mkdir(parents=True, exist_ok=True)
-                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - path: {config_file}")
-                        content = response.text
-                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} - content:\n{content}")
-                        with open(config_file, "w", encoding="utf-8") as f:
-                            f.write(content)
 
-        return data_id_paths
-
-    def apply_to_nacos(self, nacos: NacosSyncer, **options) -> list:
-        """
-        Collect and return configurations existed in Nacos based on the rule.
-
-        1. Each element of the returned list is a tuple of (namespace, group, data_id).
-        2. Parameter options adds functionalities like downloading configurations.
-
-        :param nacos: instance of class Nacos
-        :param options: additional functionalities like downloading configurations
-        :return: list
-        """
-        data_id_paths = []
-        for namespace in self.namespaces:
-            logger.info(f"Begin to extract namespace: {namespace}")
-            data_id_paths += self._collect_one_namespace(nacos, namespace, **options)
-            logger.info(f"End to extract namespace: {namespace}")
-
-        return data_id_paths
-
-    def apply_to_snapshot(self, snapshot) -> list:
-        """
-        Collect and return configurations existed in local snapshot based on the rule.
-        Each element of the returned list is an absolute path as "/path/to/snapshot/namespace/group/data_id"
-
-        :param snapshot: directory contains snapshot of Nacos
-        :return: list
-        """
-        data_id_tuples = []
-        assert Path(snapshot).exists(), f"Error. Directory {snapshot} does not exist."
-        for namespace in self.namespaces:
-            logger.info(f"Begin to check namespace: {namespace}")
-            for group in self.groups:
-                group_name = group["group"]
-                data_ids = group["data_ids"]
-                for data_id in data_ids:
-                    if Path(f"{snapshot}/{namespace}/{group_name}/{data_id}").exists():
-                        logger.info(f"namespace: {namespace}, group: {group_name}, data id: {data_id} exists")
-                        data_id_tuples.append((namespace, group_name, data_id))
-            logger.info(f"End to check namespace: {namespace}")
-
-        nacos_snapshot_abs = os.path.abspath(snapshot)
-        data_id_abs_paths = []
-        for config_path in data_id_tuples:
-            data_id_abs_paths.append(os.path.join(nacos_snapshot_abs, *config_path))
-
-        return data_id_abs_paths
