@@ -18,6 +18,7 @@ class NacosServer(object):
         assert self._is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
         self.namespaces = self._set_namespaces()
         self.namespace_name_to_id = self._namespace_name_to_id()
+        self.namespace_id_to_name = self._namespace_id_to_name()
 
     def _is_nacos_online(self):
         """Returns true if login url can be opened successfully."""
@@ -33,3 +34,7 @@ class NacosServer(object):
     def _namespace_name_to_id(self):
         """Build the relationship between namespace name and corresponding id."""
         return {n["namespaceShowName"]: n["namespace"] for n in self.namespaces}
+
+    def _namespace_id_to_name(self):
+        """Build the relationship between namespace id and corresponding name."""
+        return {n["namespace"]: n["namespaceShowName"] for n in self.namespaces}
