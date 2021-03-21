@@ -17,6 +17,7 @@ class NacosServer(object):
         self.get_namespaces_url = f"{self.host_port}{self.get_namespaces_path}"
         assert self._is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
         self.namespaces = self._set_namespaces()
+        self.namespace_name_to_id = self._namespace_name_to_id()
 
     def _is_nacos_online(self):
         """Returns true if login url can be opened successfully."""
@@ -28,3 +29,7 @@ class NacosServer(object):
         response = requests.get(self.get_namespaces_url).text
         logger.info(f"Response of {self.get_namespaces_path}: {response}")
         return json.loads(response)["data"]
+
+    def _namespace_name_to_id(self):
+        """Build the relationship between namespace name and corresponding id."""
+        return {n["namespaceShowName"]: n["namespace"] for n in self.namespaces}
