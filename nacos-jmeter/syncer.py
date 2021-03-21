@@ -1,41 +1,22 @@
 from multiprocessing import Pool
 from pathlib import Path
 import datetime
-import json
 import os
 import time
 
 from loguru import logger
 import git
 import nacos
-import requests
 
 import settings
-
-
-class NacosServer(object):
-    """Class representing one Nacos server."""
-    def __init__(self, host, port):
-        """Init class."""
-        self.host = host
-        self.host_port = f"http://{host}:{port}"
-        self.login_path = f"/nacos/#/login"
-        self.login_url = f"{self.host_port}{self.login_path}"
-        self.get_namespaces_path = f"/nacos/v1/console/namespaces"
-        self.get_namespaces_url = f"{self.host_port}{self.get_namespaces_path}"
-        assert self._is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
-
-    def _is_nacos_online(self):
-        """Returns true if login url can be opened successfully."""
-        logger.info(f"nacos login url: {self.login_url}")
-        return requests.get(self.login_url).status_code == 200
+from nacosserver import NacosServer
 
 
 class NacosSyncer(object):
     """Class representing syncer from Nacos to git."""
-    def __init__(self, nacos_server_host, nacos_server_port, nacos_client_debug=False):
+    def __init__(self, nacos_server: NacosServer, nacos_client_debug=False):
         """Init class."""
-        self.nacos_server = NacosServer(nacos_server_host, nacos_server_port)
+        self.nacos_server = nacos_server
 
         self.index = []  # tasks staged (borrow the concept of git)
         self.sync_task_lock = False  # True if one sync task (make snapshot and push to git remote) is running
@@ -93,17 +74,13 @@ class NacosSyncer(object):
 
         :param snapshot_base: Dir to store snapshot config files, whose parent directory is named with 'nacos-snapshot'.
         """
-        # get all namespaces information
-        response = requests.get(self.nacos_server.get_namespaces_url).text
-        logger.info(f"Response of {self.nacos_server.get_namespaces_path}: {response}")
-        namespaces = json.loads(response)["data"]
         logger.info("Begin to make snapshot of Nacos.")
         # Note:
         #   When running in Windows, if another change occurs when handling current change, the process will always wait
         #   nearly one minute and I don't know why, but in macOS, it works great.
         #   If running on Linux this happens, log pid to try to find reason.
-        p = Pool(len(namespaces))
-        for item in namespaces:
+        p = Pool(len(self.nacos_server.namespaces))
+        for item in self.nacos_server.namespaces:
             namespace_id = item["namespace"]
             namespace_id = None if not namespace_id else namespace_id
             namespace_name = item["namespaceShowName"]
