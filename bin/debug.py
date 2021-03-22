@@ -1,28 +1,29 @@
 import os
+import subprocess
 import sys
 sys.path.append("../nacos-jmeter")
 
-from builder import Builder
-from syncer import NacosSyncer
-import common
+import nacos
+
 import settings
 
 
-jenkins_job_name = "fullTest-Core400SUS-Cloud-API-CI"
-update_snapshot = True
+if __name__ == "__main__":
+    # one of "ci", "testonline", "predeploy", "production"
+    stage = "ci"
 
-# update Nacos snapshot if set true
-if update_snapshot:
-    print("update Nacos snapshot")
-    snapshot_dir = "../snapshot"
-    host = settings.HOST_CI
-    nacos_new = NacosSyncer(host, settings.PORT)
-    nacos_new.make_snapshot(snapshot_dir)
+    # get summary configs for specific stage
+    snapshot_base = os.path.join(settings.JMETER_HOME, "bin")
+    nacos_client = nacos.NacosClient(settings.HOST_CI, namespace=settings.SUMMARY_NAMESPACE_ID)
+    nacos_client.set_options(snapshot_base=snapshot_base)
+    nacos_client.get_config(stage, settings.SUMMARY_GROUP)
 
-build = Builder(jenkins_job_name)
-for test_plan in build.relative_path_test_plans:
-    test_plan_file_name = os.path.splitext(os.path.basename(test_plan))[0]
-    print("Collect properties for test plan: " + test_plan)
-    additional_properties = build.collect_property_files(test_plan)
-    concatenated_property_file = f"../snapshot/{test_plan_file_name}-{build.stage}.properties"
-    common.concatenate_files(additional_properties, concatenated_property_file, False)
+    # rename summary config file
+    summary_file_name = "+".join([stage, settings.SUMMARY_GROUP, settings.SUMMARY_NAMESPACE_ID])
+    os.chdir(snapshot_base)
+    old_file = summary_file_name
+    new_file = f"{stage}.properties"
+    os.rename(old_file, new_file)
+
+    # start JMeter with additional properties
+    subprocess.run(["jmeter", "-q", new_file])
