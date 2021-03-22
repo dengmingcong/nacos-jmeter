@@ -3,7 +3,6 @@ sys.path.append("../nacos-jmeter")
 
 from builder import Builder
 from testplan import TestPlan
-import settings
 
 jenkins_job_name = sys.argv[1]
 jenkins_job_workspace = sys.argv[2]
