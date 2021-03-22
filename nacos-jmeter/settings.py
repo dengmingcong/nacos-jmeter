@@ -9,6 +9,10 @@ HOST_PREDEPLOY = "10.40.9.73"
 HOST_SIT = "10.40.9.73"
 PORT = 8848
 
+ANT_HOME = "d:/Program Files (x86)/apache-ant-1.9.15"
+SUMMARY_EXTENSION_BEFORE_ENCODE = ".utf8"
+SUMMARY_EXTENSION_AFTER_ENCODE = ".properties"
+
 CROSS_ENV_NAMESPACE_ID = "cross-env"
 # denote Jenkins job stage flag and the related namespace id.
 STAGE_TO_NAMESPACE_IDS = {
@@ -17,10 +21,12 @@ STAGE_TO_NAMESPACE_IDS = {
     "predeploy": "env-03",
     "production": "env-04"
 }
+SUMMARY_NAMESPACE_ID = ""
 
 DEBUG_GROUP = "DEBUG"
 # item that comes later in list has higher priority
 STAGE_PRESET_GROUPS = ["SHARED", "DEVICE"]
+SUMMARY_GROUP = "DEFAULT_GROUP"
 
 SNAPSHOT_RULE_DATA_ID = "nacos.snapshot.rule"
 SNAPSHOT_RULE_GROUP = "DEFAULT_GROUP"
