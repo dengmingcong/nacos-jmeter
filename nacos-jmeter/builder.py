@@ -7,9 +7,7 @@ import xml.etree.ElementTree as ET
 from loguru import logger
 import yaml
 
-import common
 import settings
-from nacosserver import NacosServer
 
 
 class Builder(object):
@@ -28,8 +26,20 @@ class Builder(object):
         """
         self.parallel = False
         self.sample_build_xml = "../resources/build_template.xml"
-        self.nacos_snapshot = "../snapshot"
         self.jenkins_job_name = jenkins_job_name
+
+        self.nacos_snapshot_base = settings.NACOS_SNAPSHOT_REPO_DIR
+        self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
+        self.summary_group = settings.SUMMARY_GROUP
+
+        self.jenkins_and_jmeter_conf = os.path.join(self.nacos_snapshot_base, "+".join(
+            [
+                settings.JENKINS_JMX_RELATIONSHIP_DATA_ID,
+                settings.JENKINS_JMX_RELATIONSHIP_GROUP,
+                settings.JENKINS_JMX_RELATIONSHIP_NAMESPACE_ID
+            ]
+        ))
+        self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
 
         self.stage = self._get_test_stage_from_job_name()
         self.debug = self._debug()
@@ -50,7 +60,7 @@ class Builder(object):
         else:
             raise ValueError(
                 f"Your job name {self.jenkins_job_name} are supposed to end with either one of "
-                f"'ci', 'testonline', 'predeploy' or 'production' (case insensitive)"
+                f"{self.stage_to_namespace_ids.keys()}"
             )
         logger.info(f"Stage gotten from job name: {stage}")
         return stage
@@ -86,19 +96,15 @@ class Builder(object):
         """
         Get the JMeter test plans from nacos.jmeter.test-plan.
         Only relative path (relative to repository root) are accepted.
+
         :return: a list of test plans
         """
-        jenkins_and_jmeter_conf = os.path.join(
-            self.nacos_snapshot,
-            "public",
-            settings.JENKINS_JMX_RELATIONSHIP_GROUP,
-            settings.JENKINS_JMX_RELATIONSHIP_DATA_ID
-        )
-        assert Path(jenkins_and_jmeter_conf).exists(), f"File {jenkins_and_jmeter_conf} does not exist"
-        with open(jenkins_and_jmeter_conf, "r") as f:
+        assert Path(self.jenkins_and_jmeter_conf).exists(), f"File {self.jenkins_and_jmeter_conf} does not exist"
+        with open(self.jenkins_and_jmeter_conf, "r") as f:
             yaml_to_dict = yaml.safe_load(f)
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
-            f"The key named with Jenkins job '{self.job_name_without_modifier}' not defined in file {jenkins_and_jmeter_conf}"
+            f"The key named with Jenkins job '{self.job_name_without_modifier}' " \
+            f"not defined in file {self.jenkins_and_jmeter_conf}"
         object_to_job_name = yaml_to_dict[self.job_name_without_modifier]
         logger.info(f"object assigned to {self.job_name_without_modifier}: {object_to_job_name}")
 
@@ -140,38 +146,6 @@ class Builder(object):
         abs_path_test_plan = os.path.join(base_dir, relative_path_test_plan)
         assert os.path.exists(abs_path_test_plan), f"file or directory {abs_path_test_plan} does not exist"
         return abs_path_test_plan
-
-    def collect_property_files(self, relative_path_test_plan) -> list:
-        """
-        Collect property files (absolute path) for a JMeter test plan.
-        :param relative_path_test_plan: test plan relative to base directory
-        :return: list of property files
-        """
-        jenkins_and_jmeter_conf = os.path.join(
-            self.nacos_snapshot,
-            "public",
-            settings.JENKINS_JMX_RELATIONSHIP_GROUP,
-            settings.JENKINS_JMX_RELATIONSHIP_DATA_ID
-        )
-        assert Path(jenkins_and_jmeter_conf).exists(), f"File {jenkins_and_jmeter_conf} does not exist"
-        with open(jenkins_and_jmeter_conf, "r") as f:
-            yaml_to_dict = yaml.safe_load(f)
-        assert relative_path_test_plan in yaml_to_dict.keys(), \
-            f"The key named with JMeter test plan '{relative_path_test_plan}' not defined in file {jenkins_and_jmeter_conf}"
-
-        devices = yaml_to_dict[relative_path_test_plan]
-        assert isinstance(devices, str) or isinstance(devices, list), "devices can only be string or list."
-
-        if isinstance(devices, str):
-            devices = [devices]
-
-        # initiate a rule instance
-        r = Collector(['cross-env', self.stage], devices, self.debug)
-
-        # apply rule to snapshot
-        paths = r.collect_for_stage(self.nacos_snapshot)
-
-        return paths
 
     def generate_new_build_xml(
             self,
@@ -221,15 +195,6 @@ class Builder(object):
             result_html = f"{jenkins_job_workspace}/reports/{jmx_file_name}.html"
             abs_path_test_plan = self.abs_path_test_plan(test_plan_base_dir, test_plan)
 
-            # collect properties
-            print("Collect properties for test plan: " + test_plan)
-            additional_properties = self.collect_property_files(test_plan)
-
-            # name property file with extension ".utf8" for later conversion in ant task native2ascii
-            src_concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.utf8"
-            dst_concatenated_property_file = f"{jenkins_job_workspace}/{jmx_file_name}.properties"
-            common.concatenate_files(additional_properties, src_concatenated_property_file, True)
-
             # set attributes for each <jmeter> element
             jmeter_element = ET.Element("jmeter", attrib={
                 "jmeterhome": jmeter_home,
@@ -238,7 +203,11 @@ class Builder(object):
             })
 
             # add sub element <jmeterarg> to <jmeter>
-            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(dst_concatenated_property_file)})
+            stage_summary_property_file_name = "+".join(
+                [f"{self.stage}", self.summary_group, self.summary_namespace_id]
+            )
+            stage_summary_property_file = os.path.join(self.nacos_snapshot_base, stage_summary_property_file_name)
+            ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(stage_summary_property_file)})
 
             if self.parallel:
                 ant_parallel_element.append(jmeter_element)
@@ -259,95 +228,4 @@ class Builder(object):
         with open(f"{jenkins_job_workspace}/jmx.json", "w") as f:
             json.dump(jmx_file_names, f)
 
-        tree.write(output_build_xml)
-
-
-class Collector(object):
-    """Class representing rules describing how to collect configurations from Nacos snapshot."""
-
-    def __init__(self, snapshot_base):
-        """
-        Init a collector for specified nacos snapshot.
-
-        :param snapshot_base: Dir to store snapshot config files, whose parent directory is named with 'nacos-snapshot'.
-        """
-        self.snapshot_base = snapshot_base
-        assert Path(self.snapshot_base).exists(), f"Error. Directory {self.snapshot_base} does not exist."
-
-        self.cross_env_namespace_id = settings.CROSS_ENV_NAMESPACE_ID
-        self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
-        self.debug_group = settings.DEBUG_GROUP
-        self.stage_preset_groups = settings.STAGE_PRESET_GROUPS
-
-        # configs after filtered
-        self.nacos_snapshot_dict = self._filter_data_ids()
-
-    def _filter_data_ids(self) -> dict:
-        """
-        Filter config files for preset stages.
-
-        Only config files corresponding to cross-env and stage namespaces retained, other namespaces are omitted.
-        Group config files by namespace and group, and save the result to a dict.
-
-        returns as:
-            {
-                "cross-env": {
-                    "SHARED": ["foo", "bar"]
-                    "DEVICE": ["foo1"]
-                    "DEBUG": ["bar1"]
-                }
-            }
-        """
-        # only cross-env and all preset stage namespaces
-        target_namespace_ids = [self.cross_env_namespace_id, *list(self.stage_to_namespace_ids.values())]
-        target_groups = [*self.stage_preset_groups, self.debug_group]
-
-        # initialize wit empty list
-        nacos_snapshot_dict = {}
-        for namespace_id in target_namespace_ids:
-            nacos_snapshot_dict[namespace_id] = {}
-            for group in target_groups:
-                nacos_snapshot_dict[namespace_id][group] = []
-
-        for file in os.listdir(self.snapshot_base):
-            # filter out files whose names start with "++"
-            if not file.startswith("++"):
-                parts = file.split("+")
-                # keep only files whose name met format as "foo+bar+baz"
-                if len(parts) == 3:
-                    namespace_id = parts[2]
-                    group = parts[1]
-                    if namespace_id in target_namespace_ids and group in target_groups:
-                        nacos_snapshot_dict[namespace_id][group].append(file)
-
-        logger.debug(f"filter result: {json.dumps(nacos_snapshot_dict)}")
-        return nacos_snapshot_dict
-
-    def collect(self, stage, debug=False) -> list:
-        """
-        Collect and return configurations existed in local snapshot for specified stage.
-        Each element of the returned list is an absolute path as:
-          /path/to/snapshot/config_file (config_file format as DATA_ID+GROUP+NAMESPACE)
-
-        :param stage: stage flag as ci, testonline, ...
-        :param debug: if collecting configs with GROUP set to 'DEBUG'
-        :return: list
-        """
-        valid_stage_flags = self.stage_to_namespace_ids.keys()
-        assert stage in valid_stage_flags, f"Stage flag can only be one of {valid_stage_flags}"
-        stage_namespace_id = self.stage_to_namespace_ids[stage]
-        # cross-env and one specified stage namespace
-        target_namespace_ids = [self.cross_env_namespace_id, stage_namespace_id]
-        target_groups = self.stage_preset_groups
-        if debug:
-            target_groups += [self.debug_group]
-
-        product_data_id_list = []
-        for namespace_id in target_namespace_ids:
-            for group in target_groups:
-                data_ids_to_group = self.nacos_snapshot_dict[namespace_id][group]
-                if len(data_ids_to_group) > 0:
-                    product_data_id_list += data_ids_to_group
-
-        logger.debug(f"Data ids collected: {json.dumps(product_data_id_list)}")
-        return product_data_id_list
+        tree.write(output_build_xml, encoding="utf-8")
