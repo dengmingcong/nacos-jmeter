@@ -26,6 +26,7 @@ def concatenate_files(files: list, out: str, to_stdout=False):
             with open(file, 'r', encoding="utf-8") as in_file:
                 # shutil.copyfileobj(in_file, out_file)
                 out_file.write(in_file.read())
+    logger.debug(f"File generated: {out}")
 
     if to_stdout:
         with open(out, 'r', encoding="utf-8") as out_file:
