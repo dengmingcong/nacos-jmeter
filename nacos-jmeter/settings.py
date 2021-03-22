@@ -8,6 +8,8 @@ NACOS_SNAPSHOT_REPO_DIR = f"/data/qa/{NACOS_SNAPSHOT_REPO_NAME}"
 NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
 NACOS_CLIENT_DEBUGGING = False
 
+JMETER_HOME = "d:\Program Files (x86)\apache-jmeter-5.4"
+
 # Nacos server info
 HOST_CI = "34.234.176.173"
 HOST_TESTONLINE = "10.40.9.73"
@@ -43,4 +45,3 @@ JENKINS_JMX_RELATIONSHIP_GROUP = "DEFAULT_GROUP"
 JENKINS_JMX_RELATIONSHIP_NAMESPACE_ID = ""
 
 ON_SAMPLE_ERROR_ACTION = "stopthread"
-
