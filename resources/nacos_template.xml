@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<project name="nacos" default="all" basedir="">
+    <description>
+        Tasks about Nacos.
+    </description>
+
+    <target name="all" depends="encode-properties, move-files"/>
+
+    <target name="encode-properties">
+        <native2ascii encoding="UTF-8" dest="." includes="*.utf8" ext=".properties"/>
+    </target>
+
+    <target name="move-files">
+        <move todir="">
+            <fileset dir="">
+                <include name="*.properties"/>
+            </fileset>
+            <mapper type="glob" from="*.properties" to="*"/>
+        </move>
+    </target>
+</project>
