@@ -161,4 +161,4 @@ class Collector(object):
         if platform.system() == "Windows":
             logger.warning("On Windows, command can not execute for blank spaces in path, run it manually.")
         else:
-            subprocess.run([os.path.join(self.ant_home, "bin", "ant"), "-f", out_build_xml])
+            subprocess.run(["ant", "-f", out_build_xml])
