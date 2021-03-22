@@ -8,7 +8,7 @@ NACOS_SNAPSHOT_REPO_DIR = f"/data/qa/{NACOS_SNAPSHOT_REPO_NAME}"
 NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
 NACOS_CLIENT_DEBUGGING = False
 
-JMETER_HOME = "d:\Program Files (x86)\apache-jmeter-5.4"
+JMETER_HOME = "d:/Program Files (x86)/apache-jmeter-5.4"
 
 # Nacos server info
 HOST_CI = "34.234.176.173"
