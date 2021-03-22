@@ -18,18 +18,13 @@
     
     <target name="all" depends="run,report"/>
 
-    <target name="encode-properties">
-        <native2ascii encoding="UTF-8" src="${jenkins.job.workspace}" dest="${jenkins.job.workspace}"
-                      includes="*.utf8" ext=".properties"/>
-    </target>
-
    	<target name="delete-jtls">
 		<delete>
 			<fileset dir="${jenkins.job.workspace}" includes="*.jtl"/>
 		</delete>
 	</target>
 
-    <target name="run" depends="encode-properties,delete-jtls"/>
+    <target name="run" depends="delete-jtls"/>
 
     <property name="lib.dir" value="${jmeter.home}/lib"/>
 
