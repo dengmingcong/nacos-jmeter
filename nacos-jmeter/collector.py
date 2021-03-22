@@ -35,7 +35,6 @@ class Collector(object):
         self.nacos_snapshot_dict = self._filter_data_ids()
 
         self.nacos_template_xml = os.path.join(settings.PROJECT_ROOT, "resources", "nacos_template.xml")
-        self.ant_home = settings.ANT_HOME
         self.extension_before_encode = settings.SUMMARY_EXTENSION_BEFORE_ENCODE
         self.extension_after_encode = settings.SUMMARY_EXTENSION_AFTER_ENCODE
 
@@ -120,7 +119,7 @@ class Collector(object):
         Returns:
             None
         """
-        summary_file_name = "+".join([f"{stage}", self.summary_group, self.summary_namespace_id]) + \
+        summary_file_name = "+".join([stage, self.summary_group, self.summary_namespace_id]) + \
                             self.extension_before_encode
         config_file_list = self.collect(stage, debug)
         absolute_path_config_file_list = list(map(lambda x: os.path.join(self.snapshot_base, x), config_file_list))
