@@ -1,6 +1,12 @@
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+DATA_BASE = os.path.join(PROJECT_ROOT, "data")
+COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
+NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
+NACOS_SNAPSHOT_REPO_DIR = f"d:/03 mp products/01 cg Git代码/nacos-snapshot"
+NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
+NACOS_CLIENT_DEBUGGING = False
 
 # Nacos server info
 HOST_CI = "34.234.176.173"
@@ -35,12 +41,7 @@ SYNC_TRIGGER_GROUP = "DEFAULT_GROUP"
 
 JENKINS_JMX_RELATIONSHIP_DATA_ID = "nacos.jmeter.test-plan"
 JENKINS_JMX_RELATIONSHIP_GROUP = "DEFAULT_GROUP"
+JENKINS_JMX_RELATIONSHIP_NAMESPACE_ID = ""
 
 ON_SAMPLE_ERROR_ACTION = "stopthread"
 
-DATA_BASE = os.path.join(PROJECT_ROOT, "data")
-COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
-NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
-NACOS_SNAPSHOT_REPO_DIR = f"d:/03 mp products/01 cg Git代码/nacos-snapshot"
-NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
-NACOS_CLIENT_DEBUGGING = False
