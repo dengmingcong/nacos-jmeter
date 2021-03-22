@@ -107,9 +107,11 @@ class NacosSyncer(object):
             summary_file_name = "+".join([stage, self.summary_group, self.summary_namespace_id])
             summary_file = os.path.join(self.nacos_snapshot_repo_dir, summary_file_name)
             if os.path.exists(summary_file):
+                logger.debug(f"summary file for stage {stage} exists: {summary_file}")
                 with open(summary_file, "r") as summary:
                     content = self.sync_task_reason + "\n\n" + summary.read()
                     nacos_client.publish_config(stage, self.summary_group, content)
+                    logger.debug(f"Succeed to publish summary properties for stage {stage}.")
 
     def add(self, params):
         """
