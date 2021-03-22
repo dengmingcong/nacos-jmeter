@@ -3,6 +3,7 @@ from pathlib import Path
 import datetime
 import os
 import time
+import tempfile
 
 from loguru import logger
 import git
@@ -10,6 +11,7 @@ import nacos
 
 import settings
 from nacosserver import NacosServer
+from collector import Collector
 
 
 class NacosSyncer(object):
@@ -30,6 +32,10 @@ class NacosSyncer(object):
         self.sync_trigger_data_id = settings.SYNC_TRIGGER_DATA_ID
         self.sync_trigger_group = settings.SYNC_TRIGGER_GROUP
         self.nacos_client_debug = nacos_client_debug
+
+        self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
+        self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
+        self.summary_group = settings.SUMMARY_GROUP
 
     def _init_nacos_snapshot_repo(self) -> git.Repo:
         """
@@ -88,6 +94,22 @@ class NacosSyncer(object):
             p.apply_async(self.download_one_namespace_configs, args=(namespace_id, namespace_name, namespace_config_count, snapshot_base))
         p.close()
         p.join()
+
+    def publish_summary(self):
+        """Collect summary properties for stages and publish to public, with data id set to {stage}"""
+        c = Collector(self.nacos_snapshot_repo_dir)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            c.generate_all_stages_summary(tmp_dir)
+            c.encode_properties(tmp_dir, os.path.join(tmp_dir, "nacos.xml"))
+
+        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.summary_namespace_id)
+        for stage in self.stage_to_namespace_ids.keys():
+            summary_file_name = "+".join([stage, self.summary_group, self.summary_namespace_id])
+            summary_file = os.path.join(self.nacos_snapshot_repo_dir, summary_file_name)
+            if os.path.exists(summary_file):
+                with open(summary_file, "r") as summary:
+                    content = self.sync_task_reason + "\n\n" + summary.read()
+                    nacos_client.publish_config(stage, self.summary_group, content)
 
     def add(self, params):
         """
@@ -173,6 +195,7 @@ class NacosSyncer(object):
             try:
                 logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
                 self.make_snapshot(self.nacos_snapshot_repo_dir)
+                self.publish_summary()
                 self.commit_and_push_to_remote(self.sync_task_reason)
                 # Note:
                 #   When one watcher is running and then another change occurs, the NacosClient will record the
