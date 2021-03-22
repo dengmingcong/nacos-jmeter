@@ -265,29 +265,49 @@ class Builder(object):
 class Collector(object):
     """Class representing rules describing how to collect configurations from Nacos snapshot."""
 
-    def __init__(self, nacos_server: NacosServer, snapshot_base, stages: list):
+    def __init__(self, snapshot_base):
         """
-        Init a rule for a JMeter test plan.
+        Init a collector for specified nacos snapshot.
+
         :param snapshot_base: Dir to store snapshot config files, whose parent directory is named with 'nacos-snapshot'.
         """
-        self.nacos_server = nacos_server
-        assert Path(self.snapshot_base).exists(), f"Error. Directory {self.snapshot_base} does not exist."
         self.snapshot_base = snapshot_base
+        assert Path(self.snapshot_base).exists(), f"Error. Directory {self.snapshot_base} does not exist."
 
         self.cross_env_namespace_id = settings.CROSS_ENV_NAMESPACE_ID
-        self.stage_namespaces = settings.STAGE_NAMESPACES
-        self.target_groups = settings.TARGET_GROUPS
-        
-        self.nacos_snapshot_dict = self._save_nacos_snapshot_to_dict()
+        self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
+        self.debug_group = settings.DEBUG_GROUP
+        self.stage_preset_groups = settings.STAGE_PRESET_GROUPS
 
-    def _save_nacos_snapshot_to_dict(self) -> dict:
-        """Save nacos snapshot """
-        target_namespace_ids = [self.cross_env_namespace_id, *list(self.stage_namespaces.valuse())]
+        # configs after filtered
+        self.nacos_snapshot_dict = self._filter_data_ids()
+
+    def _filter_data_ids(self) -> dict:
+        """
+        Filter config files for preset stages.
+
+        Only config files corresponding to cross-env and stage namespaces retained, other namespaces are omitted.
+        Group config files by namespace and group, and save the result to a dict.
+
+        returns as:
+            {
+                "cross-env": {
+                    "SHARED": ["foo", "bar"]
+                    "DEVICE": ["foo1"]
+                    "DEBUG": ["bar1"]
+                }
+            }
+        """
+        # only cross-env and all preset stage namespaces
+        target_namespace_ids = [self.cross_env_namespace_id, *list(self.stage_to_namespace_ids.values())]
+        target_groups = [*self.stage_preset_groups, self.debug_group]
+
+        # initialize wit empty list
         nacos_snapshot_dict = {}
-
         for namespace_id in target_namespace_ids:
-            for group in self.target_groups:
-                target_namespace_ids[namespace_id][group] = []
+            nacos_snapshot_dict[namespace_id] = {}
+            for group in target_groups:
+                nacos_snapshot_dict[namespace_id][group] = []
 
         for file in os.listdir(self.snapshot_base):
             # filter out files whose names start with "++"
@@ -297,27 +317,37 @@ class Collector(object):
                 if len(parts) == 3:
                     namespace_id = parts[2]
                     group = parts[1]
-                    if namespace_id in target_namespace_ids and group in self.target_groups:
+                    if namespace_id in target_namespace_ids and group in target_groups:
                         nacos_snapshot_dict[namespace_id][group].append(file)
-        
+
+        logger.debug(f"filter result: {json.dumps(nacos_snapshot_dict)}")
         return nacos_snapshot_dict
 
     def collect(self, stage, debug=False) -> list:
         """
         Collect and return configurations existed in local snapshot for specified stage.
         Each element of the returned list is an absolute path as:
-          /path/to/snapshot/property (format as DATA_ID+GROUP+NAMESPACE)
+          /path/to/snapshot/config_file (config_file format as DATA_ID+GROUP+NAMESPACE)
 
         :param stage: stage flag as ci, testonline, ...
-        :param debug: if collect properties with GROUP 'DEBUG'
+        :param debug: if collecting configs with GROUP set to 'DEBUG'
         :return: list
         """
-        stage_namespace_id = self.stage_namespaces[stage]
-        valid_stages = self.stage_namespaces.keys()
-        assert stage in valid_stages, f"Stage flag can only be one of {valid_stages}"
+        valid_stage_flags = self.stage_to_namespace_ids.keys()
+        assert stage in valid_stage_flags, f"Stage flag can only be one of {valid_stage_flags}"
+        stage_namespace_id = self.stage_to_namespace_ids[stage]
+        # cross-env and one specified stage namespace
         target_namespace_ids = [self.cross_env_namespace_id, stage_namespace_id]
+        target_groups = self.stage_preset_groups
+        if debug:
+            target_groups += [self.debug_group]
 
+        product_data_id_list = []
         for namespace_id in target_namespace_ids:
-            for group in self.valid_groups:
+            for group in target_groups:
+                data_ids_to_group = self.nacos_snapshot_dict[namespace_id][group]
+                if len(data_ids_to_group) > 0:
+                    product_data_id_list += data_ids_to_group
 
-
+        logger.debug(f"Data ids collected: {json.dumps(product_data_id_list)}")
+        return product_data_id_list
