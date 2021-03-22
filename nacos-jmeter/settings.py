@@ -4,7 +4,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 DATA_BASE = os.path.join(PROJECT_ROOT, "data")
 COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
 NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
-NACOS_SNAPSHOT_REPO_DIR = f"d:/03 mp products/01 cg Git代码/nacos-snapshot"
+NACOS_SNAPSHOT_REPO_DIR = f"/data/qa/{NACOS_SNAPSHOT_REPO_NAME}"
 NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
 NACOS_CLIENT_DEBUGGING = False
 
