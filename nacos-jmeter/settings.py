@@ -1,6 +1,9 @@
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+
+LOG_DIR = "/var/log/nacos-syncer"
+
 DATA_BASE = os.path.join(PROJECT_ROOT, "data")
 COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
 NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
