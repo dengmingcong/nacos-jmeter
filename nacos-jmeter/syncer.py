@@ -85,8 +85,9 @@ class NacosSyncer(object):
         #   When running in Windows, if another change occurs when handling current change, the process will always wait
         #   nearly one minute and I don't know why, but in macOS, it works great.
         #   If running on Linux this happens, log pid to try to find reason.
-        p = Pool(len(self.nacos_server.namespaces))
-        for item in self.nacos_server.namespaces:
+        namespaces = self.nacos_server.get_namespaces()
+        p = Pool(len(namespaces))
+        for item in namespaces:
             namespace_id = item["namespace"]
             namespace_id = None if not namespace_id else namespace_id
             namespace_name = item["namespaceShowName"]
