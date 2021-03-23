@@ -12,8 +12,9 @@ jmeter_home = sys.argv[3]
 test_name = sys.argv[4]
 test_plan_base_dir = sys.argv[5]
 new_build_xml = sys.argv[6]
+nacos_snapshot_base = sys.argv[7]
 
-build = Builder(jenkins_job_name)
+build = Builder(jenkins_job_name, nacos_snapshot_base)
 for test_plan in build.relative_path_test_plans:
     test_plan_abs_path = build.abs_path_test_plan(test_plan_base_dir, test_plan)
     test_plan_instance = TestPlan(test_plan_abs_path)

@@ -18,17 +18,23 @@ class Builder(object):
         1. The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
         2. Test plan written in nacos.jmeter.test-plan must not start with "/".
     """
-    def __init__(self, jenkins_job_name):
+    def __init__(self, jenkins_job_name, snapshot_base):
         """
         Init a new Jenkins build.
 
         :param jenkins_job_name: name of Jenkins job, for example, debug-fullTest-Core400SUSR-Cloud-API-ci
+        :param snapshot_base: Directory where nacos-snapshot.git located.
         """
         self.parallel = False
         self.sample_build_xml = "../resources/build_template.xml"
         self.jenkins_job_name = jenkins_job_name
 
-        self.nacos_snapshot_base = settings.NACOS_SNAPSHOT_REPO_DIR
+        self.stage = self._get_test_stage_from_job_name()
+        self.debug = self._debug()
+        self.job_name_without_modifier = self._remove_modifiers()
+        self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
+
+        self.nacos_snapshot_base = snapshot_base
         self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
         self.summary_group = settings.SUMMARY_GROUP
 
@@ -41,10 +47,6 @@ class Builder(object):
         ))
         self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
 
-        self.stage = self._get_test_stage_from_job_name()
-        self.debug = self._debug()
-        self.job_name_without_modifier = self._remove_modifiers()
-        self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
 
     def _get_test_stage_from_job_name(self):
         """Get test stage from the jenkins job name."""
