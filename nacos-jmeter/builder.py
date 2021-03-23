@@ -29,11 +29,6 @@ class Builder(object):
         self.sample_build_xml = "../resources/build_template.xml"
         self.jenkins_job_name = jenkins_job_name
 
-        self.stage = self._get_test_stage_from_job_name()
-        self.debug = self._debug()
-        self.job_name_without_modifier = self._remove_modifiers()
-        self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
-
         self.nacos_snapshot_base = snapshot_base
         self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
         self.summary_group = settings.SUMMARY_GROUP
@@ -47,6 +42,10 @@ class Builder(object):
         ))
         self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
 
+        self.stage = self._get_test_stage_from_job_name()
+        self.debug = self._debug()
+        self.job_name_without_modifier = self._remove_modifiers()
+        self.relative_path_test_plans = self._get_jmeter_relative_path_test_plans()
 
     def _get_test_stage_from_job_name(self):
         """Get test stage from the jenkins job name."""
