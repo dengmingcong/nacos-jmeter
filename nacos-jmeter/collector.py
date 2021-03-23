@@ -157,7 +157,13 @@ class Collector(object):
         ant_task_move_element.set("todir", self.snapshot_base)
 
         tree.write(out_build_xml, encoding="utf-8")
+        logger.success(f"build.xml for decode properties generated: {out_build_xml}")
         if platform.system() == "Windows":
-            logger.warning("On Windows, command can not execute for blank spaces in path, run it manually.")
+            build_xml_dir = os.path.dirname(out_build_xml)
+            build_xml_file_name = os.path.basename(out_build_xml)
+            os.chdir(build_xml_dir)
+            subprocess.run(f"ant -f {build_xml_file_name}", shell=True)
+            os.chdir(self.snapshot_base)
         else:
             subprocess.run(["ant", "-f", out_build_xml])
+        logger.success(f"succeed to decode properties.")
