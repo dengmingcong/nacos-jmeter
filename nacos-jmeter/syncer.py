@@ -194,21 +194,18 @@ class NacosSyncer(object):
         if not self.sync_task_lock:
             self.sync_task_lock = True
             self.sync_task_reason = self.clean_index()
-            try:
-                logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
-                self.make_snapshot(self.nacos_snapshot_repo_dir)
-                self.publish_summary()
-                self.commit_and_push_to_remote(self.sync_task_reason)
-                # Note:
-                #   When one watcher is running and then another change occurs, the NacosClient will record the
-                #   change but will not call callbacks immediately (call callbacks after last watcher finished instead).
-                #   So the IF block below will never run.
-                if len(self.index) > 0:
-                    logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), "
-                                f"but index is not empty, begin to sync again.")
-                    self.sync_to_git(params)
-            except:
-                logger.error(f"Error occurs while doing sync task (reason: {self.sync_task_reason}).")
+            logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
+            self.make_snapshot(self.nacos_snapshot_repo_dir)
+            self.publish_summary()
+            self.commit_and_push_to_remote(self.sync_task_reason)
+            # Note:
+            #   When one watcher is running and then another change occurs, the NacosClient will record the
+            #   change but will not call callbacks immediately (call callbacks after last watcher finished instead).
+            #   So the IF block below will never run.
+            if len(self.index) > 0:
+                logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), "
+                            f"but index is not empty, begin to sync again.")
+                self.sync_to_git(params)
             self.sync_task_lock = False
             logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), and index is empty, quit now.")
         else:
