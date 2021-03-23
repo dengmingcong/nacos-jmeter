@@ -13,4 +13,3 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmp_dir:
         c.generate_all_stages_summary(tmp_dir)
         c.encode_properties(tmp_dir, os.path.join(tmp_dir, "nacos.xml"))
-        time.sleep(10000)
