@@ -1,7 +1,8 @@
 import os
 import subprocess
 import sys
-sys.path.append("../nacos-jmeter")
+root = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(f"{root}/nacos-jmeter")
 
 import nacos
 
