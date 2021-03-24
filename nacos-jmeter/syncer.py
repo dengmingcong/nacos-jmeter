@@ -1,6 +1,7 @@
 from multiprocessing import Pool
 from pathlib import Path
 import datetime
+import glob
 import os
 import time
 import tempfile
@@ -73,13 +74,21 @@ class NacosSyncer(object):
         nacos_client.get_configs(page_size=namespace_config_count)
         logger.info(f"End to get configs from namespace: {namespace_name}")
 
-    def make_snapshot(self, snapshot_base):
+    def make_snapshot(self, snapshot_base, clean_base=False):
         """
         Download all configurations of every namespace to local in parallel.
+
         Files with the same name will be overwritten.
+        Set clean_base to True if want to track configs deleted.
 
         :param snapshot_base: Dir to store snapshot config files, whose parent directory is named with 'nacos-snapshot'.
+        :param clean_base: Remove all file in base before download from Nacos if set as True.
         """
+        if clean_base:
+            logger.debug("Parameter 'clean_base' was set to True, delete all files in base now.")
+            files = glob.glob(f"{snapshot_base}/*")
+            for f in files:
+                os.remove(f)
         logger.info("Begin to make snapshot of Nacos.")
         # Note:
         #   When running in Windows, if another change occurs when handling current change, the process will always wait
@@ -112,7 +121,7 @@ class NacosSyncer(object):
                 with open(summary_file, "r") as summary:
                     content = self.sync_task_reason + "\n\n" + summary.read()
                     nacos_client.publish_config(stage, self.summary_group, content)
-                    logger.debug(f"Succeed to publish summary properties for stage {stage}.")
+                    logger.success(f"Succeed to publish summary properties for stage {stage}.")
 
     def add(self, params):
         """
@@ -196,7 +205,7 @@ class NacosSyncer(object):
             self.sync_task_lock = True
             self.sync_task_reason = self.clean_index()
             logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
-            self.make_snapshot(self.nacos_snapshot_repo_dir)
+            self.make_snapshot(self.nacos_snapshot_repo_dir, clean_base=True)
             self.publish_summary()
             self.commit_and_push_to_remote(self.sync_task_reason)
             # Note:
@@ -208,7 +217,7 @@ class NacosSyncer(object):
                             f"but index is not empty, begin to sync again.")
                 self.sync_to_git(params)
             self.sync_task_lock = False
-            logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), and index is empty, quit now.")
+            logger.success(f"Last sync task finished (reason: {self.sync_task_reason}), and index is empty, quit now.")
         else:
             logger.info(f"One sync task (reason: {self.sync_task_reason}) is already running, wait a moment.")
 
