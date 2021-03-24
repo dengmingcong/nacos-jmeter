@@ -7,6 +7,7 @@ LOG_DIR = "/var/log/nacos-syncer"
 DATA_BASE = os.path.join(PROJECT_ROOT, "data")
 COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
 NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
+# for syncer only, in most case cannot be used as snapshot_base of builder
 NACOS_SNAPSHOT_REPO_DIR = f"/data/qa/{NACOS_SNAPSHOT_REPO_NAME}"
 NACOS_SNAPSHOT_REPO_URL = "git@fangcun.vesync.com:testTeam/nacos-snapshot.git"
 NACOS_CLIENT_DEBUGGING = False
