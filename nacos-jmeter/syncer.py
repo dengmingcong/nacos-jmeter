@@ -72,7 +72,7 @@ class NacosSyncer(object):
         nacos_client.set_options(snapshot_base=snapshot_base)
         logger.info(f"Begin to get configs from namespace: {namespace_name}")
         nacos_client.get_configs(page_size=namespace_config_count)
-        logger.info(f"End to get configs from namespace: {namespace_name}")
+        logger.success(f"Succeed to get configs from namespace: {namespace_name}")
 
     def make_snapshot(self, snapshot_base, clean_base=False):
         """
@@ -187,7 +187,7 @@ class NacosSyncer(object):
                     logger.error(f"Failed to push even pulled before,"
                                  f"summary: {info[0].summary}, flags: {info[0].flags}, commit messages: {commit_messages}")
             else:
-                logger.info("Push to remote successfully.")
+                logger.success("Push to remote successfully.")
         else:
             logger.warning("One commit was triggered, but current working tree is clean.")
 
