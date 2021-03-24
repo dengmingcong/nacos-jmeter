@@ -191,6 +191,22 @@ class NacosSyncer(object):
         else:
             logger.warning("One commit was triggered, but current working tree is clean.")
 
+    def dispatch_sync_task(self, params):
+        """
+        Determine if new sync task can be started.
+        Args:
+            params: parameter placeholder, set by NacosClient.
+
+        Returns:
+            None
+        """
+        if not self.sync_task_lock:
+            self.sync_task_lock = True
+            self.sync_to_git(params)
+            self.sync_task_lock = False
+        else:
+            logger.info(f"One sync task (reason: {self.sync_task_reason}) is already running, wait a moment.")
+
     def sync_to_git(self, params):
         """
         Download all configs from every namespace and sync to git remote.
@@ -201,31 +217,27 @@ class NacosSyncer(object):
         Returns:
             None
         """
-        if not self.sync_task_lock:
-            self.sync_task_lock = True
-            self.sync_task_reason = self.clean_index()
-            logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
-            self.make_snapshot(self.nacos_snapshot_repo_dir, clean_base=True)
-            self.publish_summary()
-            self.commit_and_push_to_remote(self.sync_task_reason)
-            # Note:
-            #   When one watcher is running and then another change occurs, the NacosClient will record the
-            #   change but will not call callbacks immediately (call callbacks after last watcher finished instead).
-            #   So the IF block below will never run.
-            if len(self.index) > 0:
-                logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), "
-                            f"but index is not empty, begin to sync again.")
-                self.sync_to_git(params)
-            self.sync_task_lock = False
-            logger.success(f"Last sync task finished (reason: {self.sync_task_reason}), and index is empty, quit now.")
-        else:
-            logger.info(f"One sync task (reason: {self.sync_task_reason}) is already running, wait a moment.")
+        self.sync_task_reason = self.clean_index()
+        logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
+        self.make_snapshot(self.nacos_snapshot_repo_dir, clean_base=True)
+        self.publish_summary()
+        self.commit_and_push_to_remote(self.sync_task_reason)
+        # Note:
+        #   When one watcher is running and then another change occurs, the NacosClient will record the
+        #   change but will not call callbacks immediately (call callbacks after last watcher finished instead).
+        #   So the IF block below will never run.
+        if len(self.index) > 0:
+            logger.info(f"Last sync task finished (reason: {self.sync_task_reason}), "
+                        f"but index is not empty, begin to sync again.")
+            self.sync_to_git(params)
+        logger.success(f"Last sync task finished (reason: {self.sync_task_reason}), and index is empty, quit now.")
 
     def run(self):
         """Trigger sync when nacos.commit.message changes."""
         nacos_client = nacos.NacosClient(self.nacos_server.host)
         self.set_nacos_client_debug(nacos_client)
         nacos_client.set_options(no_snapshot=True)
-        nacos_client.add_config_watchers(self.sync_trigger_data_id, self.sync_trigger_group, [self.add, self.sync_to_git])
+        nacos_client.add_config_watchers(
+            self.sync_trigger_data_id, self.sync_trigger_group, [self.add, self.dispatch_sync_task])
         while True:
             time.sleep(0.1)
