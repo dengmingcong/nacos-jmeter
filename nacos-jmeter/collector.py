@@ -127,7 +127,6 @@ class Collector(object):
         absolute_path_config_file_list = list(map(lambda x: os.path.join(self.snapshot_base, x), config_file_list))
         summary_file_path = os.path.join(dst_dir, summary_file_name)
         common.concatenate_files(absolute_path_config_file_list, summary_file_path)
-        logger.success(f"Original summary property file (not decoded yet) generated: {summary_file_path}")
 
     def generate_all_stages_summary(self, dst_dir, collect_for_debug=False):
         """
