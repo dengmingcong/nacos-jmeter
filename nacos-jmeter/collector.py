@@ -29,7 +29,8 @@ class Collector(object):
         self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
         self.debug_group = settings.DEBUG_GROUP
         self.stage_preset_groups = settings.STAGE_PRESET_GROUPS
-        self.summary_group = settings.SUMMARY_GROUP
+        self.summary_group_debug = settings.SUMMARY_GROUP_DEBUG
+        self.summary_group_stable = settings.SUMMARY_GROUP_STABLE
 
         # configs after filtered
         self.nacos_snapshot_dict = self._filter_data_ids()
@@ -110,26 +111,40 @@ class Collector(object):
     def _generate_one_stage_summary(self, stage, dst_dir, debug=False):
         """
         Generate a property file by concatenating all configs for the specific stage.
+
         The extension will be set to ".utf8" temporarily for later encoding.
+        The group will be set to DEBUG if parameter debug was set True, else to STABLE.
+
         Args:
             stage: stage flag as ci, testonline, ...
             dst_dir: dir to store file generated
             debug: if set True, data ids with group "DEBUG" will be collected too
-
-        Returns:
-            None
         """
-        summary_file_name = "+".join([stage, self.summary_group, self.summary_namespace_id]) + \
+        summary_group = self.summary_group_debug if debug else self.summary_group_stable
+        summary_file_name = "+".join([stage, summary_group, self.summary_namespace_id]) + \
                             self.extension_before_encode
         config_file_list = self.collect(stage, debug)
         absolute_path_config_file_list = list(map(lambda x: os.path.join(self.snapshot_base, x), config_file_list))
-        common.concatenate_files(absolute_path_config_file_list, os.path.join(dst_dir, summary_file_name))
+        summary_file_path = os.path.join(dst_dir, summary_file_name)
+        common.concatenate_files(absolute_path_config_file_list, summary_file_path)
+        logger.success(f"Original summary property file (not decoded yet) generated: {summary_file_path}")
 
-    def generate_all_stages_summary(self, dst_dir, debug=False):
-        """Generate property file for each stage."""
-        p = Pool(len(self.stage_to_namespace_ids.keys()))
+    def generate_all_stages_summary(self, dst_dir, collect_for_debug=False):
+        """
+        Generate summary property file for each stage.
+
+        Args:
+            dst_dir: dir to store file generated
+            collect_for_debug: if set to True, collect for both STABLE and DEBUG, else for only STABLE
+        """
+        threads = len(self.stage_to_namespace_ids.keys())
+        if collect_for_debug:
+            threads = threads + threads
+        p = Pool(threads)
         for stage in self.stage_to_namespace_ids.keys():
-            p.apply_async(self._generate_one_stage_summary, args=(stage, dst_dir, debug))
+            p.apply_async(self._generate_one_stage_summary, args=(stage, dst_dir))
+            if collect_for_debug:
+                p.apply_async(self._generate_one_stage_summary, args=(stage, dst_dir, True))
         p.close()
         p.join()
 
