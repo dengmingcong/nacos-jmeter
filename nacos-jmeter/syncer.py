@@ -36,7 +36,8 @@ class NacosSyncer(object):
 
         self.stage_to_namespace_ids = settings.STAGE_TO_NAMESPACE_IDS
         self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
-        self.summary_group = settings.SUMMARY_GROUP
+        self.summary_group_debug = settings.SUMMARY_GROUP_DEBUG
+        self.summary_group_stable = settings.SUMMARY_GROUP_STABLE
 
     def _init_nacos_snapshot_repo(self) -> git.Repo:
         """
@@ -105,23 +106,51 @@ class NacosSyncer(object):
         p.close()
         p.join()
 
-    def publish_summary(self):
-        """Collect summary properties for stages and publish to public, with data id set to {stage}"""
+    def publish_one_stage_summary(self, nacos_client: nacos.NacosClient, stage, publish_for_debug=False):
+        """
+        Find summary property file and publish to namespace 'summary' if file exist.
+
+        Args:
+            nacos_client: instance of NacosClient
+            stage: stage flag
+            publish_for_debug: publish DEBUG summary to group DEBUG if set to True
+        """
+        summary_group = self.summary_group_debug if publish_for_debug else self.summary_group_stable
+        summary_file_name = "+".join([stage, summary_group, self.summary_namespace_id])
+        summary_file_path = os.path.join(self.nacos_snapshot_repo_dir, summary_file_name)
+        if os.path.exists(summary_file_path):
+            logger.debug(f"summary file for stage {stage} exists: {summary_file_path}")
+            with open(summary_file_path, "r") as summary:
+                content = self.sync_task_reason + "\n\n" + summary.read()
+                nacos_client.publish_config(stage, summary_group, content)
+                logger.success(f"Succeed to publish summary properties for stage {stage} "
+                               f"with content from file {summary_file_name}.")
+
+    def collect_and_publish_summary(self, collect_for_debug=False):
+        """
+        Collect summary properties for stages and publish to namespace 'summary', with data id set to {stage}.
+
+        Args:
+            collect_for_debug:  if set to True, summaries for both DEBUG and STAGE group would be published.
+        """
+        # collect summary for all stages and save to local snapshot base after decoding
         c = Collector(self.nacos_snapshot_repo_dir)
         with tempfile.TemporaryDirectory() as tmp_dir:
-            c.generate_all_stages_summary(tmp_dir)
+            c.generate_all_stages_summary(tmp_dir, collect_for_debug)
             c.encode_properties(tmp_dir, os.path.join(tmp_dir, "nacos.xml"))
 
+        # publish summary property file to Nacos
         nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.summary_namespace_id)
+        threads = len(self.stage_to_namespace_ids.keys())
+        if collect_for_debug:
+            threads = threads + threads
+        p = Pool(threads)
         for stage in self.stage_to_namespace_ids.keys():
-            summary_file_name = "+".join([stage, self.summary_group, self.summary_namespace_id])
-            summary_file = os.path.join(self.nacos_snapshot_repo_dir, summary_file_name)
-            if os.path.exists(summary_file):
-                logger.debug(f"summary file for stage {stage} exists: {summary_file}")
-                with open(summary_file, "r") as summary:
-                    content = self.sync_task_reason + "\n\n" + summary.read()
-                    nacos_client.publish_config(stage, self.summary_group, content)
-                    logger.success(f"Succeed to publish summary properties for stage {stage}.")
+            p.apply_async(self.publish_one_stage_summary, args=(nacos_client, stage))
+            if collect_for_debug:
+                p.apply_async(self.publish_one_stage_summary, args=(nacos_client, stage, True))
+        p.close()
+        p.join()
 
     def add(self, params):
         """
@@ -220,7 +249,7 @@ class NacosSyncer(object):
         self.sync_task_reason = self.clean_index()
         logger.info(f"Begin to sync configs from Nacos to git remote, reason: {self.sync_task_reason}")
         self.make_snapshot(self.nacos_snapshot_repo_dir, clean_base=True)
-        self.publish_summary()
+        self.collect_and_publish_summary(collect_for_debug=True)
         self.commit_and_push_to_remote(self.sync_task_reason)
         # Note:
         #   When one watcher is running and then another change occurs, the NacosClient will record the
