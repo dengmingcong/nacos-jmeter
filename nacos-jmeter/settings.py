@@ -32,12 +32,14 @@ STAGE_TO_NAMESPACE_IDS = {
     "predeploy": "env-03",
     "production": "env-04"
 }
-SUMMARY_NAMESPACE_ID = ""
+SUMMARY_NAMESPACE_ID = "summary"
 
 DEBUG_GROUP = "DEBUG"
 # item that comes later in list has higher priority
 STAGE_PRESET_GROUPS = ["SHARED", "DEVICE"]
 SUMMARY_GROUP = "DEFAULT_GROUP"
+SUMMARY_GROUP_DEBUG = "DEBUG"
+SUMMARY_GROUP_STABLE = "STABLE"
 
 SNAPSHOT_RULE_DATA_ID = "nacos.snapshot.rule"
 SNAPSHOT_RULE_GROUP = "DEFAULT_GROUP"
