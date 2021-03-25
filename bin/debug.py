@@ -13,6 +13,7 @@ import settings
 if __name__ == "__main__":
     # choose one from "ci", "testonline", "predeploy", "production"
     stage = "ci"
+    debug = True
 
     snapshot_base = os.path.join(settings.JMETER_HOME, "bin")
     logger.info(f"snapshot base is set to {snapshot_base}")
@@ -20,11 +21,12 @@ if __name__ == "__main__":
     # get summary configs for specific stage
     nacos_client = nacos.NacosClient(settings.HOST_CI, namespace=settings.SUMMARY_NAMESPACE_ID)
     nacos_client.set_options(snapshot_base=snapshot_base)
-    nacos_client.get_config(stage, settings.SUMMARY_GROUP)
+    summary_group = settings.SUMMARY_GROUP_DEBUG if debug else settings.SUMMARY_GROUP_STABLE
+    nacos_client.get_config(stage, summary_group)
 
     # rename summary config file
     os.chdir(snapshot_base)
-    old_file = "+".join([stage, settings.SUMMARY_GROUP, settings.SUMMARY_NAMESPACE_ID])
+    old_file = "+".join([stage, summary_group, settings.SUMMARY_NAMESPACE_ID])
     new_file = f"{stage}.properties"
     # delete if already exist
     if os.path.isfile(new_file):
