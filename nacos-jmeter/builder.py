@@ -14,6 +14,8 @@ class Builder(object):
     """
     Class representing once Jenkins build with ant-jmeter.
 
+    The final goal is generating proper build.xml.
+
     Note:
         1. The Nacos snapshot path was hardcoded to "../snapshot", make sure it exists.
         2. Test plan written in nacos.jmeter.test-plan must not start with "/".
@@ -31,7 +33,8 @@ class Builder(object):
 
         self.nacos_snapshot_base = snapshot_base
         self.summary_namespace_id = settings.SUMMARY_NAMESPACE_ID
-        self.summary_group = settings.SUMMARY_GROUP
+        self.summary_group_debug = settings.SUMMARY_GROUP_DEBUG
+        self.summary_group_stable = settings.SUMMARY_GROUP_STABLE
 
         self.jenkins_and_jmeter_conf = os.path.join(self.nacos_snapshot_base, "+".join(
             [
@@ -204,10 +207,12 @@ class Builder(object):
             })
 
             # add sub element <jmeterarg> to <jmeter>
+            summary_group = self.summary_group_debug if self.debug else self.summary_group_stable
             stage_summary_property_file_name = "+".join(
-                [f"{self.stage}", self.summary_group, self.summary_namespace_id]
+                [f"{self.stage}", summary_group, self.summary_namespace_id]
             )
             stage_summary_property_file = os.path.join(self.nacos_snapshot_base, stage_summary_property_file_name)
+            logger.debug(f"summary property file referred in build.xml: {stage_summary_property_file}")
             ET.SubElement(jmeter_element, "jmeterarg", attrib={"value": "-q{}".format(stage_summary_property_file)})
 
             if self.parallel:
