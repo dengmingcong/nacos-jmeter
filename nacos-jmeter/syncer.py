@@ -106,15 +106,18 @@ class NacosSyncer(object):
         p.close()
         p.join()
 
-    def publish_one_stage_summary(self, nacos_client: nacos.NacosClient, stage, publish_for_debug=False):
+    def publish_one_stage_summary(self, stage, publish_for_debug=False):
         """
         Find summary property file and publish to namespace 'summary' if file exist.
 
         Args:
-            nacos_client: instance of NacosClient
             stage: stage flag
             publish_for_debug: publish DEBUG summary to group DEBUG if set to True
         """
+        logger.debug(f"Handle publishing stage summary properties, stage: {stage}, publish for debug: {publish_for_debug}")
+        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.summary_namespace_id)
+        self.set_nacos_client_debug(nacos_client)
+
         summary_group = self.summary_group_debug if publish_for_debug else self.summary_group_stable
         summary_file_name = "+".join([stage, summary_group, self.summary_namespace_id])
         summary_file_path = os.path.join(self.nacos_snapshot_repo_dir, summary_file_name)
@@ -125,6 +128,8 @@ class NacosSyncer(object):
                 nacos_client.publish_config(stage, summary_group, content)
                 logger.success(f"Succeed to publish summary properties for stage {stage} "
                                f"with content from file {summary_file_name}.")
+        else:
+            logger.debug(f"summary file for stage {stage} does not exist: {summary_file_path}")
 
     def collect_and_publish_summary(self, collect_for_debug=False):
         """
@@ -140,15 +145,14 @@ class NacosSyncer(object):
             c.encode_properties(tmp_dir, os.path.join(tmp_dir, "nacos.xml"))
 
         # publish summary property file to Nacos
-        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.summary_namespace_id)
         threads = len(self.stage_to_namespace_ids.keys())
         if collect_for_debug:
             threads = threads + threads
         p = Pool(threads)
         for stage in self.stage_to_namespace_ids.keys():
-            p.apply_async(self.publish_one_stage_summary, args=(nacos_client, stage))
+            p.apply_async(self.publish_one_stage_summary, args=(stage,))
             if collect_for_debug:
-                p.apply_async(self.publish_one_stage_summary, args=(nacos_client, stage, True))
+                p.apply_async(self.publish_one_stage_summary, args=(stage, True))
         p.close()
         p.join()
 
