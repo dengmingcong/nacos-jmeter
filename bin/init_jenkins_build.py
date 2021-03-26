@@ -1,5 +1,7 @@
+from os import path
 import sys
-sys.path.append("../nacos-jmeter")
+project_root = path.dirname(path.dirname(path.abspath(__file__)))
+sys.path.append(f"{project_root}/nacos-jmeter")
 
 from builder import Builder
 from testplan import TestPlan

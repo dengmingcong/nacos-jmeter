@@ -1,8 +1,8 @@
+from os import path
 from pathlib import Path
 import sys
-import os
-root = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(f"{root}/nacos-jmeter")
+project_root = path.dirname(path.dirname(path.abspath(__file__)))
+sys.path.append(f"{project_root}/nacos-jmeter")
 
 from loguru import logger
 

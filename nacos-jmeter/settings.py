@@ -1,11 +1,11 @@
-import os
+from os import path
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+PROJECT_ROOT = path.dirname(path.dirname(path.abspath(__file__)))
 
 LOG_DIR = "/var/log/nacos-syncer"
 
-DATA_BASE = os.path.join(PROJECT_ROOT, "data")
-COMMIT_HISTORY = os.path.join(DATA_BASE, "commit.log")
+DATA_BASE = path.join(PROJECT_ROOT, "data")
+COMMIT_HISTORY = path.join(DATA_BASE, "commit.log")
 NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
 # for syncer only, in most case cannot be used as snapshot_base of builder
 NACOS_SNAPSHOT_REPO_DIR = f"/data/qa/{NACOS_SNAPSHOT_REPO_NAME}"
