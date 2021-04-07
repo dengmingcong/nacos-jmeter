@@ -6,7 +6,7 @@ push_message_params = [
     ["pushCountry=美国"],
     ["basicsAppVersion=all", "basicsAppVersion=2.9.17", "basicsAppVersion=3.0.0", "basicsAppVersion=3.0.62"],
     ["highBasicsAppVersion=true", "highBasicsAppVersion=false"],
-    ["targetAccountIdsObtaining=所有用户", "targetAccountIdsObtaining=单个用户", "targetAccountIdsObtaining=多个用户"]
+    ["targetAccountIdsObtaining=所有用户"]
 ]
 
 push_banner_params = [
@@ -19,8 +19,9 @@ push_banner_params = [
     ["bannerShowCountry=美国"],
     ["basicsAppVersion=all", "basicsAppVersion=2.9.17", "basicsAppVersion=3.0.62", "basicsAppVersion=3.1.0"],
     ["highBasicsAppVersion=true", "highBasicsAppVersion=false"],
-    ["targetAccountIdsObtaining=所有用户", "targetAccountIdsObtaining=单个用户", "targetAccountIdsObtaining=多个用户"],
-    ["用户已关闭 banner", "用户未关闭 banner"],
+    ["targetAccountIdsObtaining=所有用户"],
+    # 只作为构造用户的因素
+    # ["用户已关闭 banner", "用户未关闭 banner"],
     ["turnOnSwitchFlag=true", "turnOnSwitchFlag=false"]
 ]
 
@@ -41,5 +42,5 @@ push_banner_target_user_count_params = [
 # for i, pairs in enumerate(AllPairs(push_message_params)):
 #     print("{:2d}: {}".format(i, pairs))
 
-for i, pairs in enumerate(AllPairs(push_banner_target_user_count_params)):
+for i, pairs in enumerate(AllPairs(push_banner_params)):
     print("{:2d}: {}".format(i, pairs))
