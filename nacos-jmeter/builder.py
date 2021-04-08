@@ -76,8 +76,8 @@ class Builder(object):
 
     def _remove_modifiers(self):
         """Remove prefix and suffix of job name."""
-        job_name_without_modifier = re.sub("(?i)(regression|debug)[-|_]", "", self.jenkins_job_name)
-        job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy|production)", "", job_name_without_modifier)
+        job_name_without_modifier = re.sub("(?i)^(regression|debug)[-|_]", "", self.jenkins_job_name)
+        job_name_without_modifier = re.sub("(?i)[-|_](ci|testonline|predeploy|production)$", "", job_name_without_modifier)
         logger.info(f"Job name without modifiers: {job_name_without_modifier}")
         return job_name_without_modifier
 
