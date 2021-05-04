@@ -39,8 +39,19 @@ push_banner_target_user_count_params = [
     ["turnOnSwitchFlag=true", "turnOnSwitchFlag=false"]
 ]
 
+new_coupon_params = [
+    ["coupon 类型=按百分比折扣", "coupon 类型=按金额直减"],
+    ["优惠额度=有门槛", "优惠额度=无门槛"],
+    ["可使用次数=限制次数", "可使用次数=不限次数"],
+    ["每人可使用次数=限制次数", "每人可使用次数=不限次数"],
+    ["指定商品=按分类", "指定商品=按商品"],
+    ["指定用户=指定用户可用", "指定用户=所有用户可用"]
+]
+
 # for i, pairs in enumerate(AllPairs(push_message_params)):
 #     print("{:2d}: {}".format(i, pairs))
 
-for i, pairs in enumerate(AllPairs(push_banner_params)):
-    print("{:2d}: {}".format(i, pairs))
+for i, pairs in enumerate(AllPairs(new_coupon_params)):
+    common_expect = "，优惠券可以创建成功"
+    pairs = ", ".join(pairs)
+    print(f"P-{pairs}{common_expect}")
