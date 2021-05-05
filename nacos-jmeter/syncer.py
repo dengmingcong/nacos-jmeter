@@ -497,18 +497,19 @@ class DatabaseSyncer(object):
         robot = DingtalkChatbot(webhook)
 
         while True:
-            device_type_snapshot = self.get_device_type_snapshot_from_nacos()
-            firmware_info_snapshot = self.get_firmware_info_snapshot_from_nacos()
-            if device_type_snapshot:
-                diff_info_list = self.diff_device_type()
-                if len(diff_info_list) > 0:
-                    robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
-            self.sync_device_type_to_nacos()
+            if self.nacos_server.is_nacos_online():
+                device_type_snapshot = self.get_device_type_snapshot_from_nacos()
+                firmware_info_snapshot = self.get_firmware_info_snapshot_from_nacos()
+                if device_type_snapshot:
+                    diff_info_list = self.diff_device_type()
+                    if len(diff_info_list) > 0:
+                        robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
+                self.sync_device_type_to_nacos()
 
-            if firmware_info_snapshot:
-                diff_info_list = self.diff_firmware_info()
-                if len(diff_info_list) > 0:
-                    robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
-            self.sync_firmware_info_to_nacos()
+                if firmware_info_snapshot:
+                    diff_info_list = self.diff_firmware_info()
+                    if len(diff_info_list) > 0:
+                        robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
+                self.sync_firmware_info_to_nacos()
 
             time.sleep(60)
