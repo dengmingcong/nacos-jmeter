@@ -5,10 +5,13 @@ import glob
 import os
 import time
 import tempfile
+import yaml
 
+from dictdiffer import diff
 from loguru import logger
 import git
 import nacos
+import pymysql
 
 import settings
 from nacosserver import NacosServer
@@ -274,3 +277,175 @@ class NacosSyncer(object):
             self.sync_trigger_data_id, self.sync_trigger_group, [self.add, self.dispatch_sync_task])
         while True:
             time.sleep(0.1)
+
+
+class DatabaseSyncer(object):
+    """Class representing syncer from database to Nacos."""
+    def __init__(self, stage, nacos_server: NacosServer, nacos_client_debug=False):
+        """Init an object."""
+        self.nacos_server = nacos_server
+        self.nacos_client_debug = nacos_client_debug
+        self.stage = stage
+        assert self.stage in settings.STAGE_TO_NAMESPACE_IDS, \
+            f"Stage specified must be one of {settings.STAGE_TO_NAMESPACE_IDS.keys()}"
+        self.stage_namespace_id = settings.STAGE_TO_NAMESPACE_IDS[self.stage]
+
+    def set_nacos_client_debug(self, client: nacos.NacosClient):
+        """Enable NacosClient debugging when possible."""
+        if self.nacos_client_debug:
+            client.set_debugging()
+
+    @staticmethod
+    def execute_select_statement(connection: pymysql.connections.Connection, sql) -> dict:
+        """
+        Execute select statement and return result as a dict.
+
+        :param connection: instance of Connection
+        :param sql: SQL select statement
+        :return: dict of result
+        """
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                result = cursor.fetchall()
+
+        return result
+
+    def get_vesync_database_info_from_nacos(self) -> dict:
+        """
+        Get database info from Nacos.
+
+        :return: dict containing database info
+        """
+        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
+        self.set_nacos_client_debug(nacos_client)
+        configs = nacos_client.get_config(settings.VESYNC_DATABASE_DATA_ID,
+                                          settings.VESYNC_DATABASE_GROUP,
+                                          no_snapshot=True)
+        configs = yaml.safe_load(configs)
+        database_info = {
+            "host": configs[settings.KEY_TO_VESYNC_DATABASE_HOST],
+            "port": configs[settings.KEY_TO_VESYNC_DATABASE_PORT],
+            "user": configs[settings.KEY_TO_VESYNC_DATABASE_USER],
+            "password": configs[settings.KEY_TO_VESYNC_DATABASE_PASSWORD],
+            "database": configs[settings.KEY_TO_VESYNC_DATABASE_NAME]
+        }
+        return database_info
+
+    def get_vesync_database_connection(self) -> pymysql.connections.Connection:
+        """
+        Create database connection and return instance of connection.
+
+        :return: instance of Connection
+        """
+        database_info = self.get_vesync_database_info_from_nacos()
+        connection = pymysql.connect(**database_info, charset='utf8', cursorclass=pymysql.cursors.DictCursor)
+        return connection
+
+    def get_data_from_table_device_type(self) -> dict:
+        """
+        Get info from database table device_type.
+
+        :return: dict containing info from table device_type
+        """
+        connection = self.get_vesync_database_connection()
+        sql = """
+            SELECT
+                type,
+                model,
+                model_img,
+                model_name,
+                device_img,
+                config_model,
+                detail_table_name,
+                device_brand,
+                typeV2,
+                category
+            FROM
+                device_type;
+        """
+        result = self.execute_select_statement(connection, sql)
+        device_property_dict = {}
+        for item in result:
+            key = item["config_model"]
+            device_property_dict[key] = item
+        return device_property_dict
+
+    def get_data_from_table_firmware_info(self) -> dict:
+        """
+        Get info from database table firmware_info.
+
+        :return: dict containing info from table firmware_info
+        """
+        connection = self.get_vesync_database_connection()
+        sql = """
+            SELECT
+                f1.config_module,
+                f1.firmware_version,
+                f1.device_region,
+                f1.firmware_url
+            FROM
+                firmware_info AS f1
+            INNER JOIN (
+                SELECT
+                    max(version_code) AS max_version_code,
+                    config_module,
+                    device_region,
+                    plugin_name
+                FROM
+                    firmware_info AS f2
+                GROUP BY
+                    f2.config_module,
+                    f2.device_region,
+                    f2.plugin_name ) AS f3 ON
+                f1.version_code = f3.max_version_code
+                AND f1.config_module = f3.config_module
+                AND f1.device_region = f3.device_region
+                AND f1.plugin_name = f3.plugin_name;
+        """
+        result = self.execute_select_statement(connection, sql)
+        device_firmware_info_dict = {}
+        for item in result:
+            key = item["config_module"]
+            device_firmware_info_dict[key] = item
+        return device_firmware_info_dict
+
+    def get_device_type_snapshot_from_nacos(self):
+        """
+        Get snapshot of table device_type from Nacos.
+        """
+        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
+        self.set_nacos_client_debug(nacos_client)
+        snapshot = nacos_client.get_config(settings.TABLE_DEVICE_TYPE_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP)
+        if snapshot:
+            return yaml.safe_load(snapshot)
+        else:
+            return None
+
+    def get_firmware_info_snapshot_from_nacos(self):
+        """
+        Get snapshot of table firmware_info from Nacos.
+        """
+        nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
+        self.set_nacos_client_debug(nacos_client)
+        snapshot = nacos_client.get_config(settings.TABLE_FIRMWARE_INFO_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP)
+        if snapshot:
+            return yaml.safe_load(snapshot)
+        else:
+            return None
+
+    def diff_device_type(self) -> list:
+        """
+        Compare table device_type between data from database and data from Nacos.
+        """
+        data_from_database = self.get_data_from_table_device_type()
+        data_from_nacos = self.get_device_type_snapshot_from_nacos()
+        return list(diff(data_from_nacos, data_from_database))
+
+    def diff_firmware_info(self) -> list:
+        """
+        Compare table firmware_info between data from database and data from Nacos.
+        """
+        data_from_database = self.get_data_from_table_firmware_info()
+        data_from_nacos = self.get_firmware_info_snapshot_from_nacos()
+        return list(diff(data_from_nacos, data_from_database))
