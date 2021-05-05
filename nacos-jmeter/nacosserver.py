@@ -1,4 +1,5 @@
 import json
+import time
 
 import requests
 from loguru import logger
@@ -15,12 +16,18 @@ class NacosServer(object):
         self.login_url = f"{self.host_port}{self.login_path}"
         self.get_namespaces_path = f"/nacos/v1/console/namespaces"
         self.get_namespaces_url = f"{self.host_port}{self.get_namespaces_path}"
-        assert self._is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
+        assert self.is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
 
-    def _is_nacos_online(self):
+    def is_nacos_online(self):
         """Returns true if login url can be opened successfully."""
         logger.info(f"nacos login url: {self.login_url}")
         return requests.get(self.login_url).status_code == 200
+
+    def wait_until_online(self):
+        """Stop polling until Nacos server is available."""
+        while not self.is_nacos_online():
+            logger.info("Nacos server is not available now, try 10 seconds later again.")
+            time.sleep(10)
 
     def get_namespaces(self):
         """Get all namespaces information."""
