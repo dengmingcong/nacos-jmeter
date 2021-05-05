@@ -1,4 +1,4 @@
-> /var/log/nacos-syncer/start.log
+true > /var/log/nacos-syncer/start.log
 while
     ! systemctl is-active --quiet nacos.service
 do
