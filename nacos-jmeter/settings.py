@@ -1,9 +1,7 @@
 from os import path
 
 PROJECT_ROOT = path.dirname(path.dirname(path.abspath(__file__)))
-
 LOG_DIR = "/var/log/nacos-syncer"
-
 DATA_BASE = path.join(PROJECT_ROOT, "data")
 COMMIT_HISTORY = path.join(DATA_BASE, "commit.log")
 NACOS_SNAPSHOT_REPO_NAME = "nacos-snapshot"
@@ -24,6 +22,7 @@ PORT = 8848
 SUMMARY_EXTENSION_BEFORE_ENCODE = ".utf8"
 SUMMARY_EXTENSION_AFTER_ENCODE = ".properties"
 
+# namespaces
 CROSS_ENV_NAMESPACE_ID = "cross-env"
 # denote Jenkins job stage flag and the related namespace id.
 STAGE_TO_NAMESPACE_IDS = {
@@ -33,20 +32,31 @@ STAGE_TO_NAMESPACE_IDS = {
     "production": "env-04"
 }
 SUMMARY_NAMESPACE_ID = "summary"
+JENKINS_JMX_RELATIONSHIP_NAMESPACE_ID = ""
 
+# groups
 DEBUG_GROUP = "DEBUG"
 # item that comes later in list has higher priority
 STAGE_PRESET_GROUPS = ["SHARED", "DEVICE"]
 SUMMARY_GROUP_DEBUG = "DEBUG"
 SUMMARY_GROUP_STABLE = "STABLE"
-
-SNAPSHOT_RULE_DATA_ID = "nacos.snapshot.rule"
-SNAPSHOT_RULE_GROUP = "DEFAULT_GROUP"
-SYNC_TRIGGER_DATA_ID = "nacos.commit.message"
 SYNC_TRIGGER_GROUP = "DEFAULT_GROUP"
-
-JENKINS_JMX_RELATIONSHIP_DATA_ID = "nacos.jmeter.test-plan"
 JENKINS_JMX_RELATIONSHIP_GROUP = "DEFAULT_GROUP"
-JENKINS_JMX_RELATIONSHIP_NAMESPACE_ID = ""
+VESYNC_DATABASE_GROUP = "SHARED"
+DATABASE_SNAPSHOT_GROUP = "DATABASE"
+
+# data ids
+SYNC_TRIGGER_DATA_ID = "nacos.commit.message"
+JENKINS_JMX_RELATIONSHIP_DATA_ID = "nacos.jmeter.test-plan"
+VESYNC_DATABASE_DATA_ID = "common"
+TABLE_DEVICE_TYPE_DATA_ID = "vesync-main.device-type"
+TABLE_FIRMWARE_INFO_DATA_ID = "vesync-main.firmware-info"
+
+# configs
+KEY_TO_VESYNC_DATABASE_HOST = "cloud.service.database.host"
+KEY_TO_VESYNC_DATABASE_PORT = "cloud.service.database.port"
+KEY_TO_VESYNC_DATABASE_USER = "cloud.service.database.user"
+KEY_TO_VESYNC_DATABASE_PASSWORD = "cloud.service.database.password"
+KEY_TO_VESYNC_DATABASE_NAME = "cloud.service.database.name"
 
 ON_SAMPLE_ERROR_ACTION = "stopthread"
