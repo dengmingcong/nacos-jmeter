@@ -10,6 +10,7 @@ import yaml
 from dictdiffer import diff
 from dingtalkchatbot.chatbot import DingtalkChatbot
 from loguru import logger
+from pymysqlpool import ConnectionPool
 import git
 import nacos
 import pymysql
@@ -333,22 +334,24 @@ class DatabaseSyncer(object):
             "port": int(configs[settings.KEY_TO_VESYNC_DATABASE_PORT]),
             "user": configs[settings.KEY_TO_VESYNC_DATABASE_USER],
             "password": configs[settings.KEY_TO_VESYNC_DATABASE_PASSWORD],
-            "database": configs[settings.KEY_TO_VESYNC_DATABASE_NAME]
+            "database": configs[settings.KEY_TO_VESYNC_DATABASE_NAME],
+            "charset": "utf8",
+            "cursorclass": pymysql.cursors.DictCursor
         }
         logger.info(f"database info used to connect: {database_info}")
         return database_info
 
-    def get_vesync_database_connection(self) -> pymysql.connections.Connection:
+    def get_vesync_database_connection_pool(self) -> ConnectionPool:
         """
         Create database connection and return instance of connection.
 
-        :return: instance of Connection
+        :return: instance of Pool
         """
         database_info = self.get_vesync_database_info_from_nacos()
-        connection = pymysql.connect(**database_info, charset='utf8', cursorclass=pymysql.cursors.DictCursor)
-        return connection
+        connection_pool = ConnectionPool(size=1, name='connection_pool', **database_info)
+        return connection_pool
 
-    def get_data_from_table_device_type(self, connection: pymysql.connections.Connection) -> dict:
+    def get_data_from_table_device_type(self, pool: ConnectionPool) -> dict:
         """
         Get info from database table device_type.
 
@@ -369,6 +372,7 @@ class DatabaseSyncer(object):
             FROM
                 device_type;
         """
+        connection = pool.get_connection()
         result = self.execute_select_statement(connection, sql)
         device_property_dict = {}
         for item in result:
@@ -377,7 +381,7 @@ class DatabaseSyncer(object):
         logger.debug(f"data from table device_type: {device_property_dict}")
         return device_property_dict
 
-    def get_data_from_table_firmware_info(self, connection: pymysql.connections.Connection) -> dict:
+    def get_data_from_table_firmware_info(self, pool: ConnectionPool) -> dict:
         """
         Get info from database table firmware_info.
 
@@ -408,6 +412,7 @@ class DatabaseSyncer(object):
                 AND f1.device_region = f3.device_region
                 AND f1.plugin_name = f3.plugin_name;
         """
+        connection = pool.get_connection()
         result = self.execute_select_statement(connection, sql)
         device_firmware_info_dict = {}
         for item in result:
@@ -486,14 +491,14 @@ class DatabaseSyncer(object):
         webhook = f"https://oapi.dingtalk.com/robot/send?access_token={access_token}"
         robot = DingtalkChatbot(webhook)
 
-        connection = self.get_vesync_database_connection()
+        connection_pool = self.get_vesync_database_connection_pool()
 
         while True:
             if self.nacos_server.is_nacos_online():
                 device_type_from_nacos = self.get_device_type_snapshot_from_nacos()
-                device_type_from_database = self.get_data_from_table_device_type(connection)
+                device_type_from_database = self.get_data_from_table_device_type(connection_pool)
                 firmware_info_from_nacos = self.get_firmware_info_snapshot_from_nacos()
-                firmware_info_from_database = self.get_data_from_table_firmware_info(connection)
+                firmware_info_from_database = self.get_data_from_table_firmware_info(connection_pool)
                 if device_type_from_nacos:
                     diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
                     if len(diff_info_list) > 0:
@@ -514,4 +519,4 @@ class DatabaseSyncer(object):
                     logger.info(f"firmware_info not found on Nacos.")
                 self.sync_firmware_info_to_nacos(firmware_info_from_database)
 
-            time.sleep(60)
+            time.sleep(settings.DATABASE_SYNCER_INTERVAL)
