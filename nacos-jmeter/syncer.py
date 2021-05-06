@@ -330,7 +330,7 @@ class DatabaseSyncer(object):
         configs = common.load_properties_from_string(configs)
         database_info = {
             "host": configs[settings.KEY_TO_VESYNC_DATABASE_HOST],
-            "port": configs[settings.KEY_TO_VESYNC_DATABASE_PORT],
+            "port": int(configs[settings.KEY_TO_VESYNC_DATABASE_PORT]),
             "user": configs[settings.KEY_TO_VESYNC_DATABASE_USER],
             "password": configs[settings.KEY_TO_VESYNC_DATABASE_PASSWORD],
             "database": configs[settings.KEY_TO_VESYNC_DATABASE_NAME]
