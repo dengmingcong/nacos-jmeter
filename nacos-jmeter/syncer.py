@@ -14,6 +14,7 @@ import git
 import nacos
 import pymysql
 
+import common
 import settings
 from nacosserver import NacosServer
 from collector import Collector
@@ -326,8 +327,7 @@ class DatabaseSyncer(object):
                                           no_snapshot=True)
         logger.debug(f"configs (data id: {settings.VESYNC_DATABASE_DATA_ID}, group: {settings.VESYNC_DATABASE_GROUP}): "
                      f"{configs}")
-
-        configs = yaml.safe_load(configs)
+        configs = common.load_properties_from_string(configs)
         database_info = {
             "host": configs[settings.KEY_TO_VESYNC_DATABASE_HOST],
             "port": configs[settings.KEY_TO_VESYNC_DATABASE_PORT],
