@@ -324,6 +324,9 @@ class DatabaseSyncer(object):
         configs = nacos_client.get_config(settings.VESYNC_DATABASE_DATA_ID,
                                           settings.VESYNC_DATABASE_GROUP,
                                           no_snapshot=True)
+        logger.debug(f"configs (data id: {settings.VESYNC_DATABASE_DATA_ID}, group: {settings.VESYNC_DATABASE_GROUP}): "
+                     f"{configs}")
+
         configs = yaml.safe_load(configs)
         database_info = {
             "host": configs[settings.KEY_TO_VESYNC_DATABASE_HOST],
@@ -421,7 +424,8 @@ class DatabaseSyncer(object):
         """
         nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
         self.set_nacos_client_debug(nacos_client)
-        snapshot = nacos_client.get_config(settings.TABLE_DEVICE_TYPE_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP)
+        snapshot = nacos_client.get_config(settings.TABLE_DEVICE_TYPE_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP,
+                                           no_snapshot=True)
         logger.info(f"device_type data from Nacos: {snapshot}")
         if snapshot:
             return yaml.safe_load(snapshot)
@@ -434,7 +438,8 @@ class DatabaseSyncer(object):
         """
         nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
         self.set_nacos_client_debug(nacos_client)
-        snapshot = nacos_client.get_config(settings.TABLE_FIRMWARE_INFO_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP)
+        snapshot = nacos_client.get_config(settings.TABLE_FIRMWARE_INFO_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP,
+                                           no_snapshot=True)
         logger.info(f"firmware_info data from Nacos: {snapshot}")
         if snapshot:
             return yaml.safe_load(snapshot)
