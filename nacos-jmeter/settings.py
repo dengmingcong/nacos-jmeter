@@ -60,3 +60,4 @@ KEY_TO_VESYNC_DATABASE_PASSWORD = "cloud.service.database.password"
 KEY_TO_VESYNC_DATABASE_NAME = "cloud.service.database.name"
 
 ON_SAMPLE_ERROR_ACTION = "stopthread"
+DATABASE_SYNCER_INTERVAL = 60
