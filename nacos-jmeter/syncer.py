@@ -348,13 +348,12 @@ class DatabaseSyncer(object):
         connection = pymysql.connect(**database_info, charset='utf8', cursorclass=pymysql.cursors.DictCursor)
         return connection
 
-    def get_data_from_table_device_type(self) -> dict:
+    def get_data_from_table_device_type(self, connection: pymysql.connections.Connection) -> dict:
         """
         Get info from database table device_type.
 
         :return: dict containing info from table device_type
         """
-        connection = self.get_vesync_database_connection()
         sql = """
             SELECT
                 type,
@@ -378,13 +377,12 @@ class DatabaseSyncer(object):
         logger.info(f"data from table device_type: {device_property_dict}")
         return device_property_dict
 
-    def get_data_from_table_firmware_info(self) -> dict:
+    def get_data_from_table_firmware_info(self, connection: pymysql.connections.Connection) -> dict:
         """
         Get info from database table firmware_info.
 
         :return: dict containing info from table firmware_info
         """
-        connection = self.get_vesync_database_connection()
         sql = """
             SELECT
                 f1.config_module,
@@ -446,46 +444,33 @@ class DatabaseSyncer(object):
         else:
             return None
 
-    def diff_device_type(self) -> list:
+    @staticmethod
+    def diff_nacos_and_database(data_from_nacos, data_from_database) -> list:
         """
         Compare table device_type between data from database and data from Nacos.
         """
-        data_from_database = self.get_data_from_table_device_type()
-        data_from_nacos = self.get_device_type_snapshot_from_nacos()
         diff_info_list = list(diff(data_from_nacos, data_from_database))
         logger.info(f"table device_type differences: {diff_info_list}")
         return diff_info_list
 
-    def diff_firmware_info(self) -> list:
-        """
-        Compare table firmware_info between data from database and data from Nacos.
-        """
-        data_from_database = self.get_data_from_table_firmware_info()
-        data_from_nacos = self.get_firmware_info_snapshot_from_nacos()
-        diff_info_list = list(diff(data_from_nacos, data_from_database))
-        logger.info(f"table firmware_info differences: {diff_info_list}")
-        return diff_info_list
-
-    def sync_device_type_to_nacos(self):
+    def sync_device_type_to_nacos(self, data: dict):
         """
         Publish data from table device_type to Nacos.
         """
         nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
         self.set_nacos_client_debug(nacos_client)
-        data = self.get_data_from_table_device_type()
         data = yaml.dump(data)
         logger.info(f"Update Nacos "
                     f"(data id: {settings.TABLE_DEVICE_TYPE_DATA_ID}, group: {settings.DATABASE_SNAPSHOT_GROUP})"
                     f"with data {data}")
         nacos_client.publish_config(settings.TABLE_DEVICE_TYPE_DATA_ID, settings.DATABASE_SNAPSHOT_GROUP, data)
 
-    def sync_firmware_info_to_nacos(self):
+    def sync_firmware_info_to_nacos(self, data: dict):
         """
         Publish data from table firmware_info to Nacos.
         """
         nacos_client = nacos.NacosClient(self.nacos_server.host, namespace=self.stage_namespace_id)
         self.set_nacos_client_debug(nacos_client)
-        data = self.get_data_from_table_firmware_info()
         data = yaml.dump(data)
         logger.info(f"Update Nacos "
                     f"(data id: {settings.TABLE_FIRMWARE_INFO_DATA_ID}, group: {settings.DATABASE_SNAPSHOT_GROUP})"
@@ -501,20 +486,28 @@ class DatabaseSyncer(object):
         webhook = f"https://oapi.dingtalk.com/robot/send?access_token={access_token}"
         robot = DingtalkChatbot(webhook)
 
+        connection = self.get_vesync_database_connection()
+
         while True:
             if self.nacos_server.is_nacos_online():
-                device_type_snapshot = self.get_device_type_snapshot_from_nacos()
-                firmware_info_snapshot = self.get_firmware_info_snapshot_from_nacos()
-                if device_type_snapshot:
-                    diff_info_list = self.diff_device_type()
+                device_type_from_nacos = self.get_device_type_snapshot_from_nacos()
+                device_type_from_database = self.get_data_from_table_device_type(connection)
+                firmware_info_from_nacos = self.get_firmware_info_snapshot_from_nacos()
+                firmware_info_from_database = self.get_data_from_table_firmware_info(connection)
+                if device_type_from_nacos:
+                    diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
                     if len(diff_info_list) > 0:
                         robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
-                self.sync_device_type_to_nacos()
+                else:
+                    logger.info(f"device_type not found on Nacos.")
+                self.sync_device_type_to_nacos(device_type_from_database)
 
-                if firmware_info_snapshot:
-                    diff_info_list = self.diff_firmware_info()
+                if firmware_info_from_nacos:
+                    diff_info_list = self.diff_nacos_and_database(firmware_info_from_nacos, firmware_info_from_database)
                     if len(diff_info_list) > 0:
                         robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
-                self.sync_firmware_info_to_nacos()
+                else:
+                    logger.info(f"firmware_info not found on Nacos.")
+                self.sync_firmware_info_to_nacos(firmware_info_from_database)
 
             time.sleep(60)
