@@ -502,7 +502,7 @@ class DatabaseSyncer(object):
                 if device_type_from_nacos:
                     diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
                     if len(diff_info_list) > 0:
-                        robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
+                        robot.send_text(msg=f"DB ({self.stage}) changes detected: {diff_info_list}", is_at_all=True)
                     else:
                         logger.info(f"device_type: no changes detected.")
                 else:
