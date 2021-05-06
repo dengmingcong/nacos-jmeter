@@ -498,6 +498,8 @@ class DatabaseSyncer(object):
                     diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
                     if len(diff_info_list) > 0:
                         robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
+                    else:
+                        logger.info(f"device_type: no changes detected.")
                 else:
                     logger.info(f"device_type not found on Nacos.")
                 self.sync_device_type_to_nacos(device_type_from_database)
@@ -506,6 +508,8 @@ class DatabaseSyncer(object):
                     diff_info_list = self.diff_nacos_and_database(firmware_info_from_nacos, firmware_info_from_database)
                     if len(diff_info_list) > 0:
                         robot.send_text(msg=f"DB changes detected: {diff_info_list}", is_at_all=True)
+                    else:
+                        logger.info(f"firmware_info: no changes detected.")
                 else:
                     logger.info(f"firmware_info not found on Nacos.")
                 self.sync_firmware_info_to_nacos(firmware_info_from_database)
