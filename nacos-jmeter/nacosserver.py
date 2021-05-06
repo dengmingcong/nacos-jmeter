@@ -21,7 +21,13 @@ class NacosServer(object):
     def is_nacos_online(self):
         """Returns true if login url can be opened successfully."""
         logger.info(f"nacos login url: {self.login_url}")
-        return requests.get(self.login_url).status_code == 200
+        status_code = requests.get(self.login_url).status_code
+        if status_code == 200:
+            logger.success("Nacos service is available now.")
+            return True
+        else:
+            logger.warning("Nacos service is not available now.")
+            return False
 
     def wait_until_online(self):
         """Stop polling until Nacos server is available."""

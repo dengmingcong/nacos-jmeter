@@ -54,3 +54,35 @@ def convert_property_file(property_file, out):
     logger.debug(f"native2ascii: {native2ascii_full_path}")
     result = subprocess.run([native2ascii_full_path, '-encoding', 'UTF-8', property_file, out])
     logger.debug(f"Arguments: {result.args}")
+
+
+def load_properties_from_file(filepath, sep='=', comment_char='#'):
+    """
+    Read the file passed as parameter as a properties file.
+    """
+    props = {}
+    with open(filepath, "rt") as f:
+        for line in f:
+            l = line.strip()
+            if l and not l.startswith(comment_char):
+                key_value = l.split(sep)
+                key = key_value[0].strip()
+                value = sep.join(key_value[1:]).strip().strip('"')
+                props[key] = value
+    return props
+
+
+def load_properties_from_string(property_string, sep='=', comment_char='#'):
+    """
+    Parse string containing properties.
+    Each property must take one entire line.
+    """
+    props = {}
+    for line in property_string.split("\n"):
+        l = line.strip()
+        if l and not l.startswith(comment_char):
+            key_value = l.split(sep)
+            key = key_value[0].strip()
+            value = sep.join(key_value[1:]).strip().strip('"')
+            props[key] = value
+    return props
