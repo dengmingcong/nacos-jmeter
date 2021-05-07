@@ -8,7 +8,7 @@ from loguru import logger
 class NacosServer(object):
     """Class representing one Nacos server."""
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, wait_until_online=True):
         """Init class."""
         self.host = host
         self.host_port = f"http://{host}:{port}"
@@ -16,17 +16,23 @@ class NacosServer(object):
         self.login_url = f"{self.host_port}{self.login_path}"
         self.get_namespaces_path = f"/nacos/v1/console/namespaces"
         self.get_namespaces_url = f"{self.host_port}{self.get_namespaces_path}"
-        assert self.is_nacos_online(), f"Error. Cannot open login page {self.login_url} now."
+        if wait_until_online:
+            self.wait_until_online()
 
     def is_nacos_online(self):
         """Returns true if login url can be opened successfully."""
         logger.info(f"nacos login url: {self.login_url}")
-        status_code = requests.get(self.login_url).status_code
-        if status_code == 200:
+        try:
+            response = requests.get(self.login_url)
+        except requests.exceptions.ConnectionError:
+            logger.warning(f"Cannot connect to Nacos now.")
+            return False
+
+        if response.status_code == 200:
             logger.success("Nacos service is available now.")
             return True
         else:
-            logger.warning("Nacos service is not available now.")
+            logger.warning("Nacos service is available, but cannot open login page now.")
             return False
 
     def wait_until_online(self):
