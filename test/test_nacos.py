@@ -1,7 +1,7 @@
 import nacos
 import settings
 
-SERVER_ADDRESSES = f"{settings.HOST_CI}"
+SERVER_ADDRESSES = f"{settings.NACOS_SERVER_HOST_CI}"
 NAMESPACE = "env-01"
 
 namespace_id = ""

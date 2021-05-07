@@ -19,7 +19,7 @@ if __name__ == "__main__":
     logger.info(f"snapshot base is set to {snapshot_base}")
 
     # get summary configs for specific stage
-    nacos_client = nacos.NacosClient(settings.HOST_CI, namespace=settings.SUMMARY_NAMESPACE_ID)
+    nacos_client = nacos.NacosClient(settings.NACOS_SERVER_HOST_CI, namespace=settings.SUMMARY_NAMESPACE_ID)
     nacos_client.set_options(snapshot_base=snapshot_base)
     summary_group = settings.SUMMARY_GROUP_DEBUG if debug else settings.SUMMARY_GROUP_STABLE
     nacos_client.get_config(stage, summary_group)
