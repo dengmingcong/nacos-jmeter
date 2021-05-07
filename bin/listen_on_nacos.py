@@ -14,7 +14,7 @@ import syncer
 if __name__ == "__main__":
     log_dir = settings.LOG_DIR
     Path(log_dir).mkdir(parents=True, exist_ok=True)
-    logger.add(f"{log_dir}/" + "nacos_syncer_{time}.log", rotation="5 MB", compression="zip", encoding="utf-8")
-    nacos_server = nacosserver.NacosServer(settings.HOST_TESTONLINE, settings.PORT)
-    s = syncer.NacosSyncer(nacos_server)
-    s.run()
+    logger.add(f"{log_dir}/nacos_syncer.log", rotation="5 MB", compression="zip", encoding="utf-8")
+    nacos_server = nacosserver.NacosServer(settings.NACOS_SERVER_HOST_TESTONLINE, settings.NACOS_SERVER_PORT)
+    ns = syncer.NacosSyncer(nacos_server)
+    ns.run()
