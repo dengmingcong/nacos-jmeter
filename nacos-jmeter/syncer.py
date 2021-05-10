@@ -351,7 +351,7 @@ class DatabaseSyncer(object):
         connection_pool = ConnectionPool(size=2, name='connection_pool', **database_info)
         return connection_pool
 
-    def get_data_from_table_device_type(self, pool: ConnectionPool) -> dict:
+    def get_data_from_table_device_type(self, database_info: dict) -> dict:
         """
         Get info from database table device_type.
 
@@ -372,7 +372,7 @@ class DatabaseSyncer(object):
             FROM
                 device_type;
         """
-        connection = pool.get_connection()
+        connection = pymysql.connect(**database_info)
         result = self.execute_select_statement(connection, sql)
         device_property_dict = {}
         for item in result:
@@ -381,7 +381,7 @@ class DatabaseSyncer(object):
         logger.debug(f"data from table device_type: {device_property_dict}")
         return device_property_dict
 
-    def get_data_from_table_firmware_info(self, pool: ConnectionPool) -> dict:
+    def get_data_from_table_firmware_info(self, database_info: dict) -> dict:
         """
         Get info from database table firmware_info.
 
@@ -412,7 +412,7 @@ class DatabaseSyncer(object):
                 AND f1.device_region = f3.device_region
                 AND f1.plugin_name = f3.plugin_name;
         """
-        connection = pool.get_connection()
+        connection = pymysql.connect(**database_info)
         result = self.execute_select_statement(connection, sql)
         device_firmware_info_dict = {}
         for item in result:
@@ -495,14 +495,13 @@ class DatabaseSyncer(object):
 
         while True:
             if self.nacos_server.is_nacos_online():
-                connection_pool = ConnectionPool(size=1, name='connection_pool', **database_info)
                 is_need_sync_device_type = False
                 is_need_sync_firmware_info = False
 
                 device_type_from_nacos = self.get_device_type_snapshot_from_nacos()
-                device_type_from_database = self.get_data_from_table_device_type(connection_pool)
+                device_type_from_database = self.get_data_from_table_device_type(database_info)
                 firmware_info_from_nacos = self.get_firmware_info_snapshot_from_nacos()
-                firmware_info_from_database = self.get_data_from_table_firmware_info(connection_pool)
+                firmware_info_from_database = self.get_data_from_table_firmware_info(database_info)
 
                 if device_type_from_nacos:
                     diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
