@@ -341,13 +341,13 @@ class DatabaseSyncer(object):
         logger.info(f"database info used to connect: {database_info}")
         return database_info
 
-    def get_vesync_database_connection_pool(self) -> ConnectionPool:
+    @staticmethod
+    def get_vesync_database_connection_pool(database_info: dict) -> ConnectionPool:
         """
         Create database connection and return instance of connection.
 
         :return: instance of Pool
         """
-        database_info = self.get_vesync_database_info_from_nacos()
         connection_pool = ConnectionPool(size=2, name='connection_pool', **database_info)
         return connection_pool
 
@@ -491,10 +491,11 @@ class DatabaseSyncer(object):
         webhook = f"https://oapi.dingtalk.com/robot/send?access_token={access_token}"
         robot = DingtalkChatbot(webhook)
 
-        connection_pool = self.get_vesync_database_connection_pool()
+        database_info = self.get_vesync_database_info_from_nacos()
 
         while True:
             if self.nacos_server.is_nacos_online():
+                connection_pool = ConnectionPool(size=1, name='connection_pool', **database_info)
                 is_need_sync_device_type = False
                 is_need_sync_firmware_info = False
 
