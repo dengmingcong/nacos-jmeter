@@ -6,3 +6,4 @@ PyMySQL
 pymysql-pool
 PyYAML
 requests
+deepdiff
