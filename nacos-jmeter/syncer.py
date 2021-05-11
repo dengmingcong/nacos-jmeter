@@ -8,7 +8,6 @@ import tempfile
 import yaml
 
 from deepdiff import DeepDiff
-from dictdiffer import diff
 from dingtalkchatbot.chatbot import DingtalkChatbot
 from loguru import logger
 from nacos.exception import NacosRequestException
