@@ -7,6 +7,7 @@ import time
 import tempfile
 import yaml
 
+from deepdiff import DeepDiff
 from dictdiffer import diff
 from dingtalkchatbot.chatbot import DingtalkChatbot
 from loguru import logger
@@ -451,13 +452,12 @@ class DatabaseSyncer(object):
             return None
 
     @staticmethod
-    def diff_nacos_and_database(data_from_nacos, data_from_database) -> list:
+    def diff_nacos_and_database(data_from_nacos, data_from_database) -> DeepDiff:
         """
         Compare table device_type between data from database and data from Nacos.
         """
-        diff_info_list = list(diff(data_from_nacos, data_from_database))
-        logger.info(f"table device_type differences: {diff_info_list}")
-        return diff_info_list
+        ddiff = DeepDiff(data_from_nacos, data_from_database)
+        return ddiff
 
     def sync_device_type_to_nacos(self, data: dict):
         """
@@ -510,10 +510,10 @@ class DatabaseSyncer(object):
                     continue
 
                 if device_type_from_nacos:
-                    diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
-                    if len(diff_info_list) > 0:
+                    ddiff = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
+                    if len(ddiff) > 0:
                         robot.send_text(msg=f"DB ({self.stage}) changes on table device_type detected: "
-                                            f"{diff_info_list}", is_at_all=True)
+                                            f"{ddiff.pretty()}", is_at_all=True)
                         logger.info("changes on table device_type detected, sync data from database to Nacos")
                         is_need_sync_device_type = True
                     else:
@@ -526,10 +526,10 @@ class DatabaseSyncer(object):
                     self.sync_device_type_to_nacos(device_type_from_database)
 
                 if firmware_info_from_nacos:
-                    diff_info_list = self.diff_nacos_and_database(firmware_info_from_nacos, firmware_info_from_database)
-                    if len(diff_info_list) > 0:
+                    ddiff = self.diff_nacos_and_database(firmware_info_from_nacos, firmware_info_from_database)
+                    if len(ddiff) > 0:
                         robot.send_text(msg=f"DB ({self.stage}) changes on table firmware_info detected: "
-                                            f"{diff_info_list}", is_at_all=True)
+                                            f"{ddiff.pretty()}", is_at_all=True)
                         logger.info("changes on table firmware_info detected, sync data from database to Nacos")
                         is_need_sync_firmware_info = True
                     else:
