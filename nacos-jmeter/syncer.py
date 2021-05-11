@@ -10,6 +10,7 @@ import yaml
 from dictdiffer import diff
 from dingtalkchatbot.chatbot import DingtalkChatbot
 from loguru import logger
+from nacos.exception import NacosRequestException
 from pymysqlpool import ConnectionPool
 import git
 import nacos
@@ -498,10 +499,15 @@ class DatabaseSyncer(object):
                 is_need_sync_device_type = False
                 is_need_sync_firmware_info = False
 
-                device_type_from_nacos = self.get_device_type_snapshot_from_nacos()
-                device_type_from_database = self.get_data_from_table_device_type(database_info)
-                firmware_info_from_nacos = self.get_firmware_info_snapshot_from_nacos()
-                firmware_info_from_database = self.get_data_from_table_firmware_info(database_info)
+                try:
+                    device_type_from_nacos = self.get_device_type_snapshot_from_nacos()
+                    device_type_from_database = self.get_data_from_table_device_type(database_info)
+                    firmware_info_from_nacos = self.get_firmware_info_snapshot_from_nacos()
+                    firmware_info_from_database = self.get_data_from_table_firmware_info(database_info)
+                except NacosRequestException:
+                    logger.warning("Something is wrong when trying to get data from nacos, the server may be down.")
+                    time.sleep(settings.DATABASE_SYNCER_INTERVAL)
+                    continue
 
                 if device_type_from_nacos:
                     diff_info_list = self.diff_nacos_and_database(device_type_from_nacos, device_type_from_database)
