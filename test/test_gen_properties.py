@@ -1,4 +1,5 @@
-from  openpyxl import load_workbook
+from openpyxl import load_workbook
+import yaml
 
 
 property_prefix = "mall.client."
@@ -8,6 +9,7 @@ email_postfix = "@cloudtest.com"
 wb = load_workbook("accounts.xlsx")
 ws = wb["accounts"]
 property_list =[]
+account_info_dict = {}
 
 for row in ws.iter_rows(min_row=2, max_col=4, max_row=ws.max_row):
     account_id = row[0].value
@@ -39,7 +41,7 @@ for row in ws.iter_rows(min_row=2, max_col=4, max_row=ws.max_row):
     # property email
     property_email_key = f"{property_key_prefix}email"
     if guest:
-        property_email_value = "''"
+        property_email_value = None
     else:
         property_email_value = f"{email_prefix}{account_id}{email_postfix}"
     property_list.append(f"{property_email_key}={property_email_value}")
@@ -59,5 +61,17 @@ for row in ws.iter_rows(min_row=2, max_col=4, max_row=ws.max_row):
     property_app_version_value = app_version
     property_list.append(f"{property_app_version_key}={property_app_version_value}")
 
-for property in property_list:
-    print(property)
+    account_info_key = f"account{account_id}"
+    account_info_value = {
+        "email": f"${{__P({property_email_key})}}",
+        "phoneOS": f"${{__P({property_phone_os_key})}}",
+        "timeZone": f"${{__P({property_timezone_key})}}",
+        "appVersion": f"${{__P({property_app_version_key})}}"
+    }
+    account_info_dict[account_info_key] = account_info_value
+
+
+# for p in property_list:
+#     print(p)
+
+print(yaml.dump(account_info_dict))
