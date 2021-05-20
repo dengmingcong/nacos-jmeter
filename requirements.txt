@@ -3,7 +3,11 @@ dictdiffer
 DingtalkChatbot
 loguru
 PyMySQL
-pymysql-pool
 PyYAML
 requests
 deepdiff
+openpyxl
+GitPython
+nacos-sdk-python
+
+# ant bin files
