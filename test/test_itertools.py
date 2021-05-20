@@ -17,5 +17,17 @@ banner_list = [
     ["用户已关闭 banner", "用户未关闭 banner"]
 ]
 
-for element in itertools.product(*banner_list):
-    print(element)
+mall_banner_list_old = [
+    ["iOS", "安卓"],
+    ["新用户", "老用户"],
+]
+
+mall_banner_list_new = [
+    ["有成交记录的商城用户", "无成交记录的商城用户", "游客"],
+    ["登录终端=android, App 版本=最低支持商城的版本", "登录终端=android, App 版本=最低支持原生页面跳转的版本",
+     "登录终端=iOS, App 版本=最低支持商城的版本", "登录终端=iOS, App 版本=最低支持原生页面跳转的版本",
+     "登录终端=PC", "登录终端=M"],
+]
+
+for element in itertools.product(*mall_banner_list_new):
+    print(", ".join(element))
