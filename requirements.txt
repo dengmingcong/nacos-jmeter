@@ -11,3 +11,4 @@ GitPython
 nacos-sdk-python
 
 # ant bin files
+lxml
