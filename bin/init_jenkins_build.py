@@ -3,6 +3,8 @@ import sys
 project_root = path.dirname(path.dirname(path.abspath(__file__)))
 sys.path.append(f"{project_root}/nacos-jmeter")
 
+from loguru import logger
+
 from builder import Builder
 from testplan import TestPlan
 
@@ -26,6 +28,7 @@ for test_plan in build.relative_path_test_plans:
     test_plan_instance.change_controller_type()
 
     if is_smoke_test == "true":
+        logger.info("smoke test flag was set, add JSR223Listener to HTTP Request now.")
         test_plan_instance.add_jsr223listener_to_each_http_request()
 
     test_plan_instance.save(test_plan_abs_path)

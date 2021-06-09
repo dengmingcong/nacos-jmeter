@@ -1,3 +1,4 @@
+from loguru import logger
 from lxml import etree as ET
 
 
@@ -38,6 +39,7 @@ class TestPlan(object):
         jmeter_test_plan = self.tree.getroot()
 
         if jmeter_test_plan.get("monitored"):
+            logger.debug("JSR223Listener has added to every HTTP Request Sampler, skip")
             return
         else:
             jmeter_test_plan.set("monitored", "true")
