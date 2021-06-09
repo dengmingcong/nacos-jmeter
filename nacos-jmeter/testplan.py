@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 
 
 class TestPlan(object):
@@ -33,6 +33,41 @@ class TestPlan(object):
             property_parent = transaction_controller.find("boolProp[@name='TransactionController.parent']")
             property_parent.text = "true"
 
+    def add_jsr223listener_to_each_http_request(self):
+        """Add JSR223Listener Sub-Element to each http request element to support open falcon."""
+        jmeter_test_plan = self.tree.getroot()
+
+        if jmeter_test_plan.get("monitored"):
+            return
+        else:
+            jmeter_test_plan.set("monitored", "true")
+
+        hash_trees = self.tree.xpath(".//HTTPSamplerProxy/following-sibling::hashTree[1]")
+
+        for hash_tree in hash_trees:
+            # fist http requests is preheat interface, no need to upload monitoring
+            if hash_trees.index(hash_tree) == 0:
+                continue
+
+            # add one sub-elements
+            jsr223_tree = ET.SubElement(hash_tree, "JSR223Listener")
+
+            # set attributes "guiclass", "testclass", "testname", "enabled".
+            jsr223_tree.set("guiclass", "TestBeanGUI")
+            jsr223_tree.set("testclass", "JSR223Listener")
+            jsr223_tree.set("testname", "JSR223 Listener")
+            jsr223_tree.set("enabled", "true")
+
+            # add three sub-elements
+            script_language = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "scriptLanguage"})
+            script_language.text = "groovy"
+
+            filename = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "filename"})
+            filename.text = "pushToFalcon.groovy"
+
+            cache_key = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "cacheKey"})
+            cache_key.text = "true"
+
     def set_on_sample_error(self, value):
         """Set on_sample_error."""
         if value not in ["continue", "stopthread"]:
@@ -47,4 +82,4 @@ class TestPlan(object):
         Save tree to file.
         :param out_file: file to save as
         """
-        self.tree.write(out_file, encoding="utf-8")
+        self.tree.write(out_file, encoding="utf-8", xml_declaration=True, pretty_print=True)
