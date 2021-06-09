@@ -104,7 +104,7 @@ class Builder(object):
         :return: a list of test plans
         """
         assert Path(self.jenkins_and_jmeter_conf).exists(), f"File {self.jenkins_and_jmeter_conf} does not exist"
-        with open(self.jenkins_and_jmeter_conf, "r") as f:
+        with open(self.jenkins_and_jmeter_conf, "r", encoding='utf-8') as f:
             yaml_to_dict = yaml.safe_load(f)
         assert self.job_name_without_modifier in yaml_to_dict.keys(), \
             f"The key named with Jenkins job '{self.job_name_without_modifier}' " \
