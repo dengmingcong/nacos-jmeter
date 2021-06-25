@@ -68,10 +68,22 @@ new_coupon_params = [
     ["指定用户=指定用户可用", "指定用户=所有用户可用"]
 ]
 
+
+app_version = [
+    ["iOS: ", "Android: "],
+    ["VeSync ", "v"],
+    ["3.1.2", "3.1.6"],
+    [" build2", "-build2", "_build2", ""],
+]
+
 # for i, pairs in enumerate(AllPairs(push_message_params)):
 #     print("{:2d}: {}".format(i, pairs))
 
-for i, pairs in enumerate(AllPairs(push_banner_to_mall_params_new)):
-    common_expect = ""
-    pairs = ", ".join(pairs)
-    print(f"P-{pairs}{common_expect}")
+# for i, pairs in enumerate(AllPairs(push_banner_to_mall_params_new)):
+#     common_expect = ""
+#     pairs = ", ".join(pairs)
+#     print(f"P-{pairs}{common_expect}")
+
+for i, pairs in enumerate(AllPairs(app_version)):
+    pairs = "".join(pairs)
+    print(pairs)

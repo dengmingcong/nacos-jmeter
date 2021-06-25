@@ -29,5 +29,11 @@ mall_banner_list_new = [
      "登录终端=PC", "登录终端=M"],
 ]
 
-for element in itertools.product(*mall_banner_list_new):
-    print(", ".join(element))
+app_version = [
+    ["VeSync ", "v"],
+    ["3.1.2", "3.1.6"],
+    [" build2", "-build2", ""],
+]
+
+for element in itertools.product(*app_version):
+    print("".join(element))
