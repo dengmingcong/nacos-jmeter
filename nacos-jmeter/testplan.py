@@ -34,7 +34,7 @@ class TestPlan(object):
             property_parent = transaction_controller.find("boolProp[@name='TransactionController.parent']")
             property_parent.text = "true"
 
-    def add_jsr223listener_to_each_http_request(self):
+    def add_jsr223listener_to_each_http_request(self, jenkins_job_name):
         """Add JSR223Listener Sub-Element to each http request element to support open falcon."""
         jmeter_test_plan = self.tree.getroot()
 
@@ -60,12 +60,15 @@ class TestPlan(object):
             jsr223_tree.set("testname", "JSR223 Listener")
             jsr223_tree.set("enabled", "true")
 
-            # add three sub-elements
+            # add 4 sub-elements
             script_language = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "scriptLanguage"})
             script_language.text = "groovy"
 
             filename = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "filename"})
             filename.text = "pushToFalcon.groovy"
+
+            parameters = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "parameters"})
+            parameters.text = jenkins_job_name
 
             cache_key = ET.SubElement(jsr223_tree, "stringProp", attrib={"name": "cacheKey"})
             cache_key.text = "true"

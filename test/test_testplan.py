@@ -1,6 +1,6 @@
 from testplan import TestPlan
 
-t = TestPlan("test plan.jmx")
+t = TestPlan("SmokeTestCore400SUS.jmx")
 t.change_controller_type()
-t.enable_stop_thread()
-t.save("test plan new.jmx")
+t.add_jsr223listener_to_each_http_request("smokeTest-Core400SUS-Production")
+t.save("SmokeTestCore400SUSNew.jmx")

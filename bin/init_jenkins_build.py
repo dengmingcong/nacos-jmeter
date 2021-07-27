@@ -29,7 +29,7 @@ for test_plan in build.relative_path_test_plans:
 
     if is_smoke_test == "true":
         logger.info("smoke test flag was set, add JSR223Listener to HTTP Request now.")
-        test_plan_instance.add_jsr223listener_to_each_http_request()
+        test_plan_instance.add_jsr223listener_to_each_http_request(jenkins_job_name)
 
     test_plan_instance.save(test_plan_abs_path)
 
