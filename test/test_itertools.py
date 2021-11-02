@@ -8,6 +8,15 @@ message_list = [
     ["2.9.17", "3.0.62", "3.1.18"]
 ]
 
+message_sprint_iii_user_list = [
+    ["iOS", "安卓"],
+    # 3.0.62 之前所有版本只支持 h5 跳转，不支持 app 原生跳转；3.0.62 同时支持
+    # ["支持 h5 跳转", "不支持 h5 跳转", "支持 App 原生页面跳转", "不支持 App 原生页面跳转"],
+    # 同一国家不同时区，推送时间不同；同一时区，不同国家和区域，是否推送不同；考虑比 UTC 慢和比 UTC 快
+    ["美国-America/Los_Angeles (UTC-8)", "美国-America/New_York (UTC-5)", "加拿大-America/Toronto (UTC-5)", "菲律宾-Asia/Manila (UTC+8)"],
+    ["2.9.17", "3.0.62", "3.1.44"]
+]
+
 banner_list = [
     ["iOS", "安卓"],
     # 3.0.62 之前所有版本只支持 h5 跳转，不支持 app 原生跳转；3.0.62 同时支持
@@ -59,5 +68,5 @@ push_sprint_two_preview_params = [
     ["推送用户范围=单个用户", "推送用户范围=用户群", "推送用户范围=全量"],
 ]
 
-for element in itertools.product(*banner_list):
+for element in itertools.product(*message_sprint_iii_user_list):
     print(",".join(element))

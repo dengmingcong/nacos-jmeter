@@ -131,13 +131,23 @@ push_sprint_two_creator_params = [
     ["状态=草稿", "状态=一级审核中", "状态=二级审批中", "状态=三级审批中", "状态=三级审批不通过", "状态=待发送", "状态=发送中", "状态=已发送", "状态=已终止"],
 ]
 
+# push 三期推送
+push_sprint_iii_params = [
+    ["os=iOS", "os=安卓", "os=all"],
+    ["msgType=h5 跳转", "msgType=原生页面跳转"],
+    ["pushRegion=北美区", "pushRegion=加拿大区", "pushRegion=东南亚区"],
+    ["basicsAppVersion=all", "basicsAppVersion=2.9.17", "basicsAppVersion=3.0.62", "basicsAppVersion=3.1.44"],
+    ["highBasicsAppVersion=true", "highBasicsAppVersion=false"],
+    ["targetAccountIdsObtaining=所有用户"]
+]
+
 # for i, pairs in enumerate(AllPairs(push_message_params)):
 #     print("{:2d}: {}".format(i, pairs))
 
-for i, pairs in enumerate(AllPairs(push_sprint_two_params_status_not_to_be_approved)):
+for i, pairs in enumerate(AllPairs(push_sprint_iii_params)):
     common_expect = ""
     pairs = ", ".join(pairs)
-    print(f"【{i}】N-{pairs}{common_expect}，失败且返回错误码")
+    print(f"【{i}】P-{pairs}{common_expect}，收到推送消息的用户正确")
 
 # for i, pairs in enumerate(AllPairs(app_version)):
 #     pairs = "".join(pairs)
